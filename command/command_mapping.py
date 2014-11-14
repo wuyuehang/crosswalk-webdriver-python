@@ -8,7 +8,8 @@ from init_session_commands import ExecuteGetStatus
 # session commands map
 SessionCommandMapping = {r'/status$': {'GET': Bind(ExecuteGetStatus)},
                          r'/session/([a-f0-9]+)$': {'GET': Bind(ExecuteGetSessionCapabilities)},
-                         r'/session/([a-f0-9]+)/timeouts/implicit_wait$': {'POST': Bind(ExecuteImplicitlyWait)}}
+                         r'/session/([a-f0-9]+)/timeouts/implicit_wait$': {'POST': Bind(ExecuteImplicitlyWait)},
+                         r'/session/([a-f0-9]+)/timeouts$': {'POST': Bind(ExecuteSetTimeout)}}
 
 # window commands map
 WindowCommandMapping = {r'/session/([a-f0-9]+)/title$': {'GET': Bind(ExecuteGetTitle)},
