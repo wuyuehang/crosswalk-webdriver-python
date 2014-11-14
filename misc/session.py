@@ -35,10 +35,11 @@ class Session(object):
     self.mouse_position = WebPoint(0, 0)
     self.page_load_timeout = Session.kDefaultPageLoadTimeout
     self.window = ""
-    self.frames = [] 
     # List of |FrameInfo|s for each frame to the current target frame from the
     # first frame element in the root document. If target frame is window.top,
     # this list will be empty.
+    self.frames = [] 
+    # implicit_wait mill seconds
     self.implicit_wait = None
     self.script_timeout = None
     self.prompt_text = ""
