@@ -1,6 +1,7 @@
 __all__ = ["ExecuteGetSessionCapabilities", \
            "ExecuteImplicitlyWait", \
-           "ExecuteSetTimeout"]
+           "ExecuteSetTimeout", \
+           "ExecuteSetScriptTimeout"]
 
 from browser.status import *
 from base.log import VLOG
@@ -35,5 +36,12 @@ def ExecuteSetTimeout(session, params, value):
     session.page_load_timeout = session.kDefaultPageLoadTimeout if timeout < 0 else timeout
   else:
     return Status(kUnknownError, "unknown type of timeout:" + typer)
+  return Status(kOk)
+
+def ExecuteSetScriptTimeout(session, params, value):
+  ms = params.get("ms", -1.0)
+  if type(ms) != float or ms < 0.0:
+    return Status(kUnknownError, "'ms' must be a non-negative number")
+  session.script_timeout = int(ms)
   return Status(kOk)
 

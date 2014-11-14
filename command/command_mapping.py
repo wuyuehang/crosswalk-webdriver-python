@@ -9,7 +9,8 @@ from init_session_commands import ExecuteGetStatus
 SessionCommandMapping = {r'/status$': {'GET': Bind(ExecuteGetStatus)},
                          r'/session/([a-f0-9]+)$': {'GET': Bind(ExecuteGetSessionCapabilities)},
                          r'/session/([a-f0-9]+)/timeouts/implicit_wait$': {'POST': Bind(ExecuteImplicitlyWait)},
-                         r'/session/([a-f0-9]+)/timeouts$': {'POST': Bind(ExecuteSetTimeout)}}
+                         r'/session/([a-f0-9]+)/timeouts$': {'POST': Bind(ExecuteSetTimeout)},
+                         r'/session/([a-f0-9]+)/timeouts/async_script$': {'POST': Bind(ExecuteSetScriptTimeout)}}
 
 # window commands map
 WindowCommandMapping = {r'/session/([a-f0-9]+)/title$': {'GET': Bind(ExecuteGetTitle)},
