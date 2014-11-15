@@ -1,6 +1,7 @@
 __all__ = ["Bind"]
 
 from log import VLOG
+from browser.status import *
 
 """ Bind class accept 2 parameters: a callable function and a list where variable 
 parameters packed in.
@@ -14,6 +15,11 @@ execute function willl result in exception """
 
 class Bind(object):
 
+  # default execute funtion doing nothing
+  @staticmethod
+  def _RunNothing():
+    return Status(kOk)
+
   def __init__(self, runner=None, args=[]):
     if callable(runner) == False:
       VLOG(0, "execute function isn't callable")
@@ -22,12 +28,8 @@ class Bind(object):
       self.runner = runner
       self.args = args
     except:
-      self.runner = self._DefaultRunner
+      self.runner = Bind._RunNothing
  
-  # default execute funtion doing nothing
-  def _DefaultRunner(self):
-    pass
-
   def Update(self, args=[]):
     self.args = args
   

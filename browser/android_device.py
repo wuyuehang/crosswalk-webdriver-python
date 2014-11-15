@@ -2,6 +2,7 @@ __all__ = ["AndroidDevice"]
 
 from adb_impl import AdbImpl
 from status import *
+from base.log import VLOG
 
 class AndroidDevice(object):
 
@@ -27,6 +28,7 @@ class AndroidDevice(object):
         if not process:
           status.AddDetails("process name must be specified if not equal to package name")
         return status
+    VLOG(0, "Devtools port: " + port)
     return self.xdb.ForwardPort(self.device_serial, port, package)
          
   def SetUp(self, package, activity, process, args, use_running_app, port):

@@ -5,7 +5,6 @@ import time
 import threading
 import BaseHTTPServer
 from server.http_handler import XwalkHttpHandlerWrapper
-from server.http_handler import fake_quit_func 
 from net.port_server import PortServer
 from base.log import InitLogging
 from base.log import VLOG
@@ -13,7 +12,7 @@ from base.bind import Bind
 
 def main(argv):
   ''' main entrance of xwalkdriver '''
-  # global variables
+  # default setting for CrossWalk WebDriver
   port = "9515"
   host_name = ""
   port_server = None
@@ -32,12 +31,13 @@ def main(argv):
   # info user HOWTO:
   if 1 == len(argv):
     parser.print_help()
-    sys.exit(-1)
-
+  
+  # choose specific port to listen on
   (opts, _) = parser.parse_args()
   if opts.port:
     port = opts.port
 
+  # choose specific port server to maintain port for devtools
   if opts.port_server:
     if 'linux2' != sys.platform:
       print "Warning: port-server not implemented for this platform."
@@ -60,35 +60,32 @@ def main(argv):
   elif url_base[-1] != '/':
     url_base = url_base + '/'
 
-  # choose specific device
+  # choose specific device for testing
   if opts.target:
     target = opts.target.lower()
     Handler = XwalkHttpHandlerWrapper(port, url_base, target, port_server)
   else:
-    # default device: android
     Handler = XwalkHttpHandlerWrapper(port, url_base, target, port_server)
   
   if not opts.silent:
     print "Starting XwalkDriver on port %s" % port
-    sys.stdout.flush()    
 
-  if InitLogging(opts) == False:
+  if False == InitLogging(opts):
     print "Unable to initialize logging. Exiting..."
-    sys.stdout.flush()    
     sys.exit(-1)
   
   VLOG(0, "Running on target device " + target)
 
   # Running Http Server
   httpd = BaseHTTPServer.HTTPServer((host_name, int(port)), Handler)
-  print time.asctime(), "Xwalk Http Server Starts - %s:%s" % (host_name, int(port))
+  VLOG(1, "Xwalk Http Server Starts - %s:%s" % (host_name, port))
   try:
     httpd.serve_forever()
   except KeyboardInterrupt:
-    print time.asctime(), "Xwalk Http Server Stops - %s:%s" % (host_name, int(port))
+    VLOG(1, "Xwalk Http Server Stops - %s:%s" % (host_name, port))
     httpd.server_close()
   finally:
-    # make the directory tree clean every time 
+    # scan and make the directory tree clean every time 
     for rootdir, subdir, files in os.walk("./"):
       for item in files:
         if item.endswith(".pyc"):
@@ -96,13 +93,15 @@ def main(argv):
             os.remove(rootdir + "/" + item)
           except:
             pass
+
     # retrieve zombie thread in case of Ctrl-C crosswalk webdriver ohther than call dirver.quit() in selenium side
     for zombie in threading.enumerate():
       if zombie != threading.current_thread():
-        quit_thread_cmd = Bind(fake_quit_func)
+        quit_thread_cmd = Bind(Bind._RunNothing)
         quit_thread_cmd.is_quit_func_ = True
         zombie.PostTask(quit_thread_cmd)
-  return 0 # end of main
+
+  sys.exit(0) # end of main
 
 if __name__ == '__main__':
   main(sys.argv)

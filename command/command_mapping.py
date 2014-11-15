@@ -10,7 +10,8 @@ SessionCommandMapping = {r'/status$': {'GET': Bind(ExecuteGetStatus)},
                          r'/session/([a-f0-9]+)$': {'GET': Bind(ExecuteGetSessionCapabilities)},
                          r'/session/([a-f0-9]+)/timeouts/implicit_wait$': {'POST': Bind(ExecuteImplicitlyWait)},
                          r'/session/([a-f0-9]+)/timeouts$': {'POST': Bind(ExecuteSetTimeout)},
-                         r'/session/([a-f0-9]+)/timeouts/async_script$': {'POST': Bind(ExecuteSetScriptTimeout)}}
+                         r'/session/([a-f0-9]+)/timeouts/async_script$': {'POST': Bind(ExecuteSetScriptTimeout)},
+                         r'/session/([a-f0-9]+)/window_handle$': {'GET': Bind(ExecuteGetCurrentWindowHandle)}}
 
 # window commands map
 WindowCommandMapping = {r'/session/([a-f0-9]+)/title$': {'GET': Bind(ExecuteGetTitle)},
