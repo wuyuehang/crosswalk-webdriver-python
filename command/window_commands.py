@@ -24,7 +24,7 @@ def _GetUrl(web_view, frame):
   return (Status(kOk), value)
 
 def ExecuteWindowCommand(command, session, params, value):
-  web_view = WebViewImpl("", 0, None)
+  web_view = WebViewImpl("fake_id", 0, None)
   # update web_view
   status = session.GetTargetWindow(web_view)
   if status.IsError():

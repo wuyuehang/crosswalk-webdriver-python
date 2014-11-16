@@ -3,6 +3,7 @@ __all__ = ["SessionCommandMapping"]
 from base.bind import Bind
 from window_commands import *
 from session_commands import *
+from alert_commands import *
 from init_session_commands import ExecuteGetStatus
 
 # session commands map
@@ -22,4 +23,7 @@ WindowCommandMapping = {r'/session/([a-f0-9]+)/title$': {'GET': Bind(ExecuteGetT
                         r'/session/([a-f0-9]+)/browser_connection$': {'GET': Bind(ExecuteIsBrowserOnline)},
                         r'/session/([a-f0-9]+)/back$': {'POST': Bind(ExecuteGoBack)},
                         r'/session/([a-f0-9]+)/forward$': {'POST': Bind(ExecuteGoForward)}}
+
+# alert commands map
+AlertCommandMapping = {r'/session/([a-f0-9]+)/accept_alert$': {'POST': Bind(ExecuteAcceptAlert)}}
 
