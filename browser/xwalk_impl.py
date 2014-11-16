@@ -70,7 +70,6 @@ class XwalkImpl(Xwalk):
         for listener in self.devtools_event_listeners:
           client.AddListener(listener)
         self.web_views.append(WebViewImpl(view.sid, self.GetBuildNo(), client))
-        #VLOG(0, ">>>>>>>>>>>>>>>>>> type: " + str(type(self.web_views[0].client)))
       web_view_ids_tmp = []
       for web_view_iter in self.web_views:
         web_view_ids_tmp.append(web_view_iter.GetId())

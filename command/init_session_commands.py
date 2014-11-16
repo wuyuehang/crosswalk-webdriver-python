@@ -114,7 +114,6 @@ def _InitSessionHelper(bound_params, session, params, value):
   session.capabilities = _CreateCapabilities(session.xwalk)
   value.clear()
   value.update(session.capabilities)
-  #VLOG(0, "final step in init helper")
   return Status(kOk)
 
 def ExecuteInitSession(bound_params, session, params, value):

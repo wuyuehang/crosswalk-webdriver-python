@@ -23,19 +23,16 @@ class ThreadWrap(threading.Thread):
     # use to sync between main thread and itself
     self.condition = condition
     # use to control its own state
-    # self.idle_condition = threading.Condition()
     self.queue = Queue.Queue()
     self.session = session
     # tracing shared vars by any command
     self.status = Status(kOk)
     self.value = {}
+    # delay enough time to make sure its parents thread acquire the condition first, so
+    # that parent thread can add itself to notify table
     self.is_ready = False
   
   def run(self):
-    # delay enough time to make sure its parents thread acquire the condition first, so
-    # that parent thread can add itself to notify table
-    time.sleep(0.01)    
-    #VLOG(0, "make sure child thread runs after parent thread")
     while True:
       if not self.is_ready:
         continue
@@ -59,11 +56,7 @@ class ThreadWrap(threading.Thread):
         time.sleep(0.05)
 
   def PostTask(self, cmd):
-    # ready to wake up itself from idle state
-    #self.idle_condition.acquire()
     self.queue.put(cmd)
-    #self.idle_condition.notify()
-    #self.idle_condition.release()
     return
 
 """ since python' subprocess module does not support manual timeout setting. 
@@ -104,14 +97,12 @@ class ExecuteGetResponse(object):
       return (Status(kTimeout, msg), "")
     # handle command execute shell-like error, etc. command unregconize or spelled error
     if self.stderr:
-      VLOG(0, "stderr: target command: " + self.cmd)
-      VLOG(0, "stderr: information: " + self.stderr)
-      return (Status(kUnknownError, "Failed to run adb command, is the adb server running?"), "")
+      VLOG(3, "Xdb: %s - %s" % (self.cmd, self.stderr))
+      return (Status(kUnknownError, "Failed to run Xdb command, is the Xdb server running?"), "")
     # handle adb execute error
     matchObj = re.search(r'error', self.stdout, re.I)
     if matchObj:
-      VLOG(0, "stdout: target command: " + self.cmd)
-      VLOG(0, "stdout: information: " + self.stdout)
-      return (Status(kUnknownError, "Failed to run adb command, detailed message:" + self.stdout), "")
+      VLOG(3, "Xdb: %s - %s" % (self.cmd, self.stdout))
+      return (Status(kUnknownError, "Failed to run Xdb command, detailed message:" + self.stdout), "")
     return (Status(kOk), self.stdout)
     

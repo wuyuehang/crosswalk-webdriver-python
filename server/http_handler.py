@@ -11,6 +11,7 @@ from browser.sdb_impl import SdbImpl
 from browser.status import *
 from command.init_session_commands import *
 from command.window_commands import ExecuteWindowCommand
+from command.session_commands import ExecuteSessionCommand
 from command.command_mapping import SessionCommandMapping
 from command.command_mapping import WindowCommandMapping
 from misc.session import Session
@@ -21,9 +22,6 @@ from net.port_server import PortManager
 from net.http_error_code import *
 from net.websocket_factory import WebsocketFactory
 
-def fake_quit_func():
-  return Status(kOk)
-
 # inner complement of Http request handler
 class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
@@ -33,6 +31,7 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     self.port_server_ = port_server
     self.socket_factory_ = WebsocketFactory()
     self.port_manager_ = PortManager(12000, 13000)
+
     # determine type of device_manager according to device_os, so whenever meet
     # judge logic, you can call isinstance(device_manager.xdb_, AdbImpl)
     if target == "android":
@@ -43,7 +42,7 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
   def PrepareResponse(self, trimmed_path, status, value, session_id):
     response = self.PrepareResponseHelper(trimmed_path, status, value, session_id)
-    VLOG(0, "SendTo Sele: " + str(response))
+    VLOG(0, "SendTo Selenium: " + str(response))
     self.send_response(response["code"])
     for header_item in response["headers"]:
       self.send_header(header_item[0], header_item[1])
@@ -57,12 +56,14 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                   "headers": [["", ""],], 
                   "body": "unimplemented command: " + trimmed_path}
       return response
+
     if trimmed_path == "/status" and status.IsOk():
       response = {}
       response["code"] = HTTP_OK
       response["headers"] = [["Content-Type", "application; charset=utf-8"],]
       response["body"] = value
       return response
+
     if trimmed_path == "/session" and status.IsOk():
     # Creating a session involves a HTTP request to /session, which is
     # supposed to redirect to /session/:sessionId, which returns the
@@ -75,12 +76,15 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                   "headers": [["Content-Location", self.url_base_ + "session/" + session_id],],
                   "body": json.dumps(body_params)}
       return response
+    # handle error status of executing commmand
     elif status.IsError():
       full_status = status
       full_status.AddDetails("Driver info: xwalkdriver=" + kXwalkDriverVersion + \
                              ",platform=" + os.uname()[0] + " " + os.uname()[2] + " " + os.uname()[-1])
       value.clear()
       value.update({"message": full_status.Message()})
+
+    # handle the others successful command
     body_params = {}
     body_params["status"] = status.Code()
     body_params["value"] = value.get("value", value)
@@ -94,75 +98,71 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
   def ExecuteCreateSession(self):
     # init session command, capabilities is located in content
-    matchObj = re.match(r'/session$', self.path)
-    if matchObj:
-      params = {}
-      varLen = int(self.headers['Content-Length'])
-      content = self.rfile.read(varLen)
-      #params = json.loads(content)
-      # we focus on ascii not unicode
-      params = yaml.load(content)
-      # Create a new session
-      new_id = GenerateId()
-      #VLOG(0, "generate session id in webdriver:" + new_id)
-      session = Session(new_id)
-      condition = threading.Condition()
-      threadwrap = ThreadWrap(condition, new_id, session)
-      response_sele_cmd = Bind(self.PrepareResponse, ["/session", threadwrap.status, threadwrap.value, new_id])
-      response_sele_cmd.is_send_func_ = True
-      # prepare init session command
-      bound_params = InitSessionParams(self.socket_factory_, \
-                                       self.device_manager_, \
-                                       self.port_server_, \
-                                       self.port_manager_)
-      init_session_cmd = Bind(ExecuteInitSession, [bound_params, session, params, threadwrap.value])
-      threadwrap.PostTask(init_session_cmd)
-      threadwrap.PostTask(response_sele_cmd)
-      # run the new thread
-      try:
-        threadwrap.start()
-      except:
-        response_sele_cmd = Bind(self.PrepareResponse, ["/session", Status(kUnknownError, "failed to start a thread for the new session"), {}, ""])
-        response_sele_cmd.Run()
-        return Status(kUnknownError, "failed to start a thread for new session")
-      # use condition lock to make sure current thread blocks until the child-thread finishes execute send function
-      condition.acquire()
-      threadwrap.is_ready = True
-      #VLOG(0, "parents run first")
-      condition.wait()
-      condition.release()
-      VLOG(0, "init session finish")
+    params = {}
+    varLen = int(self.headers['Content-Length'])
+    content = self.rfile.read(varLen)
+    # we focus on ascii not unicode
+    params = yaml.load(content)
+    # Create a new session
+    new_id = GenerateId()
+    session = Session(new_id)
+    # Create a condition for main thread to wait for...
+    condition = threading.Condition()
+    target_thread = ThreadWrap(condition, new_id, session)
+    # use to send response message to selenium side
+    response_cmd = Bind(self.PrepareResponse, ["/session", target_thread.status, target_thread.value, new_id])
+    # glue a dynamic attr to response command
+    response_cmd.is_send_func_ = True
+    # prepare init session command
+    bound_params = InitSessionParams(self.socket_factory_, \
+                                     self.device_manager_, \
+                                     self.port_server_, \
+                                     self.port_manager_)
+    init_session_cmd = Bind(ExecuteInitSession, [bound_params, session, params, target_thread.value])
+    target_thread.PostTask(init_session_cmd)
+    target_thread.PostTask(response_cmd)
+    # run the new thread
+    try:
+      target_thread.start()
+    except:
+      response_cmd = Bind(self.PrepareResponse, ["/session", Status(kUnknownError, "failed to start a thread for the new session"), {}, ""])
+      response_cmd.Run()
+      return Status(kUnknownError, "failed to start a thread for new session")
+    # use condition lock to make sure current thread blocks until the child-thread finishes execute send function
+    condition.acquire()
+    target_thread.is_ready = True
+    condition.wait()
+    condition.release()
     return Status(kOk)
 
   def ExecuteDeleteSession(self):
     matchObj = re.match(r'/session/([a-f0-9]+)$', self.path)
-    if matchObj:
-      target_session_id = matchObj.groups()[0]
-      target_threadwrap = None
-      # hit the target threadwrap
-      for item in threading.enumerate():
-        if item.name == target_session_id:
-          target_threadwrap = item
-          break
-      if target_threadwrap == None:
-        VLOG(3, "no such session")
-        return Status(kUnknownError)
-      # quit relative xwalk impl
-      quit_session_cmd = Bind(ExecuteQuit, [False, target_threadwrap.session, {}, {}])
-      # send response
-      response_sele_cmd = Bind(self.PrepareResponse, [self.path, Status(kOk), {}, target_session_id])
-      response_sele_cmd.is_send_func_ = True
-      # quit thread
-      quit_thread_cmd = Bind(fake_quit_func)
-      quit_thread_cmd.is_quit_func_ = True
-      target_threadwrap.PostTask(quit_session_cmd)
-      target_threadwrap.PostTask(response_sele_cmd)
-      # use condition lock to make sure current thread blocks until the child-thread finishes execute send function
-      target_threadwrap.condition.acquire()
-      target_threadwrap.condition.wait()
-      target_threadwrap.condition.release()
-      target_threadwrap.PostTask(quit_thread_cmd)
-      VLOG(0, "finish quit command")
+    target_session_id = matchObj.groups()[0]
+    target_thread = None
+    # hit the target thread
+    for item in threading.enumerate():
+      if item.name == target_session_id:
+        target_thread = item
+        break
+    if target_thread == None:
+      status = Status(kNoSuchSession)
+      VLOG(3, status.Message())
+      return status
+    # quit relative xwalk impl
+    quit_session_cmd = Bind(ExecuteQuit, [False, target_thread.session, {}, {}])
+    # send response
+    response_cmd = Bind(self.PrepareResponse, [self.path, Status(kOk), {}, target_session_id])
+    response_cmd.is_send_func_ = True
+    # quit thread
+    quit_thread_cmd = Bind(Bind._RunNothing)
+    quit_thread_cmd.is_quit_func_ = True
+    target_thread.PostTask(quit_session_cmd)
+    target_thread.PostTask(response_cmd)
+    # use condition lock to make sure current thread blocks until the child-thread finishes execute send function
+    target_thread.condition.acquire()
+    target_thread.condition.wait()
+    target_thread.condition.release()
+    target_thread.PostTask(quit_thread_cmd)
     return Status(kOk)
 
   def SessionCommandHandler(self):
@@ -192,9 +192,9 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     # hit the target thread
     for item in threading.enumerate():
       if item.name == target_session_id:
-        target_threadwrap = item
+        target_thread = item
         break
-    if target_threadwrap == None:
+    if target_thread == None:
       VLOG(3, "no such session")
       return Status(kNoSuchSession)
     # extract the params from selenium
@@ -209,16 +209,16 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       #params = json.loads(content)
       params = yaml.load(content)
     # dynamic reset parameters of session command
-    execute_cmd.Update([target_threadwrap.session, params, target_threadwrap.value])
+    session_cmd = Bind(ExecuteSessionCommand, [execute_cmd, target_thread.session, params, target_thread.value])
     # prepare response to selenium command
-    response_sele_cmd = Bind(self.PrepareResponse, [self.path, target_threadwrap.status, target_threadwrap.value, target_session_id])
-    response_sele_cmd.is_send_func_ = True
-    target_threadwrap.PostTask(execute_cmd)
-    target_threadwrap.PostTask(response_sele_cmd)
+    response_cmd = Bind(self.PrepareResponse, [self.path, target_thread.status, target_thread.value, target_session_id])
+    response_cmd.is_send_func_ = True
+    target_thread.PostTask(session_cmd)
+    target_thread.PostTask(response_cmd)
     # use condition lock to make sure current thread blocks until the child-thread finishes execute send function
-    target_threadwrap.condition.acquire()
-    target_threadwrap.condition.wait()
-    target_threadwrap.condition.release()
+    target_thread.condition.acquire()
+    target_thread.condition.wait()
+    target_thread.condition.release()
     return Status(kOk)
     
   def WindowCommandHandler(self):
@@ -239,9 +239,9 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     # hit the target thread
     for item in threading.enumerate():
       if item.name == target_session_id:
-        target_threadwrap = item
+        target_thread = item
         break
-    if target_threadwrap == None:
+    if target_thread == None:
       VLOG(3, "no such session")
       return Status(kNoSuchSession)
     # extract the params from selenium
@@ -256,16 +256,16 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       #params = json.loads(content)
       params = yaml.load(content)
     # make up window command
-    window_cmd = Bind(ExecuteWindowCommand, [execute_cmd, target_threadwrap.session, params, target_threadwrap.value])
+    window_cmd = Bind(ExecuteWindowCommand, [execute_cmd, target_thread.session, params, target_thread.value])
     # prepare response to selenium command
-    response_sele_cmd = Bind(self.PrepareResponse, [self.path, Status(kOk), target_threadwrap.value, target_session_id])
-    response_sele_cmd.is_send_func_ = True
-    target_threadwrap.PostTask(window_cmd)
-    target_threadwrap.PostTask(response_sele_cmd)
+    response_cmd = Bind(self.PrepareResponse, [self.path, Status(kOk), target_thread.value, target_session_id])
+    response_cmd.is_send_func_ = True
+    target_thread.PostTask(window_cmd)
+    target_thread.PostTask(response_cmd)
     # use condition lock to make sure current thread blocks until the child-thread finishes execute send function
-    target_threadwrap.condition.acquire()
-    target_threadwrap.condition.wait()
-    target_threadwrap.condition.release()
+    target_thread.condition.acquire()
+    target_thread.condition.wait()
+    target_thread.condition.release()
     return Status(kOk)
 
   def do_POST(self):

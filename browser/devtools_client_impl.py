@@ -158,7 +158,7 @@ class DevToolsClientImpl(DevToolsClient):
     return self.sid
 
   def WasCrashed(self):
-    return self.crushed
+    return self.crashed
 
   def ConnectIfNecessary(self):
     if self.stack_count[0]:

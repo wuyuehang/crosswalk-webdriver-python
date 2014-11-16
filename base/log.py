@@ -27,6 +27,7 @@ def InitLogging(opts):
   logging.addLevelName(logging.WARNING, "\033[1;41m%s\033[1;0m" % logging.getLevelName(logging.WARNING))
   logging.addLevelName(logging.ERROR, "\033[1;41m%s\033[1;0m" % logging.getLevelName(logging.ERROR))
   logging.addLevelName(logging.CRITICAL, "\033[1;41m%s\033[1;0m" % logging.getLevelName(logging.CRITICAL))
+
   g_level = logging.DEBUG
 
   if '--verbose' in sys.argv:

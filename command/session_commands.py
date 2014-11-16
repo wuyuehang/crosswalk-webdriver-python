@@ -13,6 +13,32 @@ kWindowHandlePrefix = "CDwindow-"
 def _WebViewIdToWindowHandle(web_view_id):
   return kWindowHandlePrefix + web_view_id
 
+def ExecuteSessionCommand(command, session, params, value):
+  command.Update([session, params, value])
+  status = command.Run()
+  
+  if status.IsError() and session.xwalk:
+    if not session.quit and session.xwalk.HasCrashedWebView():
+      session.quit = True
+      message = "session deleted because of page crash"
+      if not session.detach:
+        quit_status = session.xwalk.Quit()
+        if quit_status.IsError():
+          message += ", but failed to kill browser:" + quit_status.Message()
+      status = Status(kUnknownError, message)
+    elif status.Code() == kDisconnected:
+      # Some commands, like clicking a button or link which closes the window,
+      # may result in a kDisconnected error code.
+      web_view_ids = []
+      status_tmp = session.xwalk.GetWebViewIds(web_view_ids)
+      if status_tmp.IsError() and status_tmp.Code() != kXwalkNotReachable:
+        status.AddDetails("failed to check if window was closed: " + status_tmp.Message())
+      elif session.window not in web_view_ids:
+        status = Status(kOk) 
+    if status.IsError():
+      status.AddDetails("Session info: xwalk=" + session.xwalk.GetVersion())
+  return status
+
 def ExecuteGetSessionCapabilities(session, params, value):
   value.clear()
   value.update(session.capabilities)
@@ -53,15 +79,12 @@ def ExecuteSetScriptTimeout(session, params, value):
   return Status(kOk)
 
 def ExecuteGetCurrentWindowHandle(session, params, value):
-  #web_view = WebViewImpl("fake", 0, None)
-  #status = session.GetTargetWindow(web_view)
+  web_view = WebViewImpl("fake", 0, None)
+  status = session.GetTargetWindow(web_view)
   web_view_ids = []
-  status = session.xwalk.GetWebViewIds(web_view_ids)
-  print "in cur %d" % len(web_view_ids)
   if status.IsError():
     return status
   value.clear()
-  #value.update({"value": _WebViewIdToWindowHandle(web_view.GetId())})
-  value.update({"value": _WebViewIdToWindowHandle(web_view_ids[0])})
+  value.update({"value": _WebViewIdToWindowHandle(session.window)})
   return Status(kOk)
 
