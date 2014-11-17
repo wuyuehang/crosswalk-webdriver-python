@@ -25,7 +25,9 @@ WindowCommandMapping = {r'/session/([a-f0-9]+)/title$': {'GET': Bind(ExecuteGetT
                         r'/session/([a-f0-9]+)/back$': {'POST': Bind(ExecuteGoBack)},
                         r'/session/([a-f0-9]+)/forward$': {'POST': Bind(ExecuteGoForward)},
                         r'/session/([a-f0-9]+)/element$': {'POST': Bind(ExecuteFindElement)},
-                        r'/session/([a-f0-9]+)/elements$': {'POST': Bind(ExecuteFindElements)}}
+                        r'/session/([a-f0-9]+)/elements$': {'POST': Bind(ExecuteFindElements)},
+                        r'/session/([a-f0-9]+)/execute$': {'POST': Bind(ExecuteExecuteScript)},
+                        r'/session/([a-f0-9]+)/execute_async$': {'POST': Bind(ExecuteExecuteAsyncScript)}}
 
 # alert commands map
 AlertCommandMapping = {r'/session/([a-f0-9]+)/accept_alert$': {'POST': Bind(ExecuteAcceptAlert)}}

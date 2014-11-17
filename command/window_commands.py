@@ -8,7 +8,9 @@ __all__ = ["ExecuteWindowCommand", \
            "ExecuteGoBack", \
            "ExecuteGoForward", \
            "ExecuteFindElement", \
-           "ExecuteFindElements"]
+           "ExecuteFindElements", \
+           "ExecuteExecuteScript", \
+           "ExecuteExecuteAsyncScript"]
 
 from browser.web_view_impl import WebViewImpl
 from browser.status import *
@@ -118,4 +120,27 @@ def ExecuteFindElement(session, web_view, params, value):
 def ExecuteFindElements(session, web_view, params, value):
   interval_ms = 50
   return FindElement(interval_ms, False, "", session, web_view, params, value)
+
+def ExecuteExecuteScript(session, web_view, params, value):
+  script = params.get("script")
+  if type(script) != str:
+    return Status(kUnknownError, "'script' must be a string")
+  if script == ":takeHeapSnapshot":
+    #TODO:
+    #return web_view->TakeHeapSnapshot(value);
+    pass
+  else:
+    args = params.get("args")
+    if type(args) != list:
+      return Status(kUnknownError, "'args' must be a list")
+    return web_view.CallFunction(session.GetCurrentFrameId(), "function(){" + script + "}", args, value)
+
+def ExecuteExecuteAsyncScript(session, web_view, params, value):
+  script = params.get("script")
+  if type(script) != str:
+    return Status(kUnknownError, "'script' must be a string")
+  args = params.get("args")
+  if type(args) != list:
+    return Status(kUnknownError, "'args' must be a list")
+  return web_view.CallUserAsyncFunction(session.GetCurrentFrameId(), "function(){" + script + "}", args, session.script_timeout, value)
 
