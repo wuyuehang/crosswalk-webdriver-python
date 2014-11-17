@@ -22,8 +22,14 @@ WindowCommandMapping = {r'/session/([a-f0-9]+)/title$': {'GET': Bind(ExecuteGetT
                         r'/session/([a-f0-9]+)/source$': {'GET': Bind(ExecuteGetPageSource)},
                         r'/session/([a-f0-9]+)/browser_connection$': {'GET': Bind(ExecuteIsBrowserOnline)},
                         r'/session/([a-f0-9]+)/back$': {'POST': Bind(ExecuteGoBack)},
-                        r'/session/([a-f0-9]+)/forward$': {'POST': Bind(ExecuteGoForward)}}
+                        r'/session/([a-f0-9]+)/forward$': {'POST': Bind(ExecuteGoForward)},
+                        r'/session/([a-f0-9]+)/element$': {'POST': Bind(ExecuteFindElement)},
+                        r'/session/([a-f0-9]+)/elements$': {'POST': Bind(ExecuteFindElements)}}
 
 # alert commands map
 AlertCommandMapping = {r'/session/([a-f0-9]+)/accept_alert$': {'POST': Bind(ExecuteAcceptAlert)}}
+
+# element commands map
+
+
 

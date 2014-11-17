@@ -6,11 +6,14 @@ __all__ = ["ExecuteWindowCommand", \
            "ExecuteIsBrowserOnline", \
            "ExecuteGet", \
            "ExecuteGoBack", \
-           "ExecuteGoForward"]
+           "ExecuteGoForward", \
+           "ExecuteFindElement", \
+           "ExecuteFindElements"]
 
 from browser.web_view_impl import WebViewImpl
 from browser.status import *
 from base.log import VLOG
+from command.element_util import FindElement
 
 # return status and url<string>
 def _GetUrl(web_view, frame):
@@ -107,4 +110,12 @@ def ExecuteGoBack(session, web_view, params, value):
 
 def ExecuteGoForward(session, web_view, params, value):
   return web_view.EvaluateScript("", "window.history.forward();", value)
+
+def ExecuteFindElement(session, web_view, params, value):
+  interval_ms = 50
+  return FindElement(interval_ms, True, "", session, web_view, params, value)
+
+def ExecuteFindElements(session, web_view, params, value):
+  interval_ms = 50
+  return FindElement(interval_ms, False, "", session, web_view, params, value)
 

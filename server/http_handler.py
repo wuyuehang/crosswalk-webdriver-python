@@ -268,6 +268,9 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     target_thread.condition.release()
     return Status(kOk)
 
+  def ElementCommandHandler(self):
+    pass
+
   def do_POST(self):
     VLOG(1, "%s : %s" % (self.command, self.path))
     if re.match(r'/session$', self.path):
@@ -275,11 +278,13 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     else:
       self.SessionCommandHandler()
       self.WindowCommandHandler()
+      #self.ElementCommandHandler()
     
   def do_GET(self):
     VLOG(1, "%s : %s" % (self.command, self.path))
     self.SessionCommandHandler()
     self.WindowCommandHandler()
+    #self.ElementCommandHandler()
         
   def do_DELETE(self):
     VLOG(1, "%s : %s" % (self.command, self.path))
@@ -288,6 +293,7 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     else:
       self.SessionCommandHandler()
       self.WindowCommandHandler()
+      #self.ElementCommandHandler()
 
 """ interface of XwalkHttpHandler for extending BaseHTTPRequestHandler """
 def XwalkHttpHandlerWrapper(port, url_base, target, port_server):
