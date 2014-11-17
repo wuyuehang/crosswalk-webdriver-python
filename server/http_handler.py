@@ -12,8 +12,10 @@ from browser.status import *
 from command.init_session_commands import *
 from command.window_commands import ExecuteWindowCommand
 from command.session_commands import ExecuteSessionCommand
+from command.element_commands import ExecuteElementCommand
 from command.command_mapping import SessionCommandMapping
 from command.command_mapping import WindowCommandMapping
+from command.command_mapping import ElementCommandMapping
 from misc.session import Session
 from base.bind import Bind
 from base.log import VLOG
@@ -195,7 +197,6 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         target_thread = item
         break
     if target_thread == None:
-      VLOG(3, "no such session")
       return Status(kNoSuchSession)
     # extract the params from selenium
     params = {}
@@ -223,7 +224,7 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     
   def WindowCommandHandler(self):
     execute_cmd = None
-    # parse what kind of session command
+    # parse what kind of window command
     for key, value in WindowCommandMapping.iteritems():
       matchObj = re.match(key, self.path)
       if matchObj:
@@ -242,7 +243,6 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         target_thread = item
         break
     if target_thread == None:
-      VLOG(3, "no such session")
       return Status(kNoSuchSession)
     # extract the params from selenium
     params = {}
@@ -269,7 +269,52 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     return Status(kOk)
 
   def ElementCommandHandler(self):
-    pass
+    execute_cmd = None
+    element_id = None
+    # parse what kind of element command
+    for key, value in ElementCommandMapping.iteritems():
+      matchObj = re.match(key, self.path)
+      if matchObj:
+        execute_cmd = ElementCommandMapping[key].get(self.command, None)
+        # ensure the command is valid
+        if execute_cmd != None:
+          target_session_id = matchObj.groups()[0]
+          element_id = matchObj.groups()[1]
+          break
+    # ignore invalid command
+    if execute_cmd == None:
+      return Status(kUnknownCommand, "invalid or unimplement window command from selenium")
+    # handle command
+    # hit the target thread
+    for item in threading.enumerate():
+      if item.name == target_session_id:
+        target_thread = item
+        break
+    if target_thread == None:
+      return Status(kNoSuchSession)
+    # extract the params from selenium
+    params = {}
+    try:
+      varLen = int(self.headers['Content-Length'])
+    except:
+      # in case of no such header option
+      varLen = 0
+    if varLen:
+      content = self.rfile.read(varLen)
+      #params = json.loads(content)
+      params = yaml.load(content)
+    # make up element command
+    element_cmd = Bind(ExecuteElementCommand, [execute_cmd, element_id, target_thread.session, params, target_thread.value])
+    # prepare response to selenium command
+    response_cmd = Bind(self.PrepareResponse, [self.path, Status(kOk), target_thread.value, target_session_id])
+    response_cmd.is_send_func_ = True
+    target_thread.PostTask(element_cmd)
+    target_thread.PostTask(response_cmd)
+    # use condition lock to make sure current thread blocks until the child-thread finishes execute send function
+    target_thread.condition.acquire()
+    target_thread.condition.wait()
+    target_thread.condition.release()
+    return Status(kOk)
 
   def do_POST(self):
     VLOG(1, "%s : %s" % (self.command, self.path))
@@ -278,13 +323,13 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     else:
       self.SessionCommandHandler()
       self.WindowCommandHandler()
-      #self.ElementCommandHandler()
+      self.ElementCommandHandler()
     
   def do_GET(self):
     VLOG(1, "%s : %s" % (self.command, self.path))
     self.SessionCommandHandler()
     self.WindowCommandHandler()
-    #self.ElementCommandHandler()
+    self.ElementCommandHandler()
         
   def do_DELETE(self):
     VLOG(1, "%s : %s" % (self.command, self.path))
@@ -293,7 +338,7 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     else:
       self.SessionCommandHandler()
       self.WindowCommandHandler()
-      #self.ElementCommandHandler()
+      self.ElementCommandHandler()
 
 """ interface of XwalkHttpHandler for extending BaseHTTPRequestHandler """
 def XwalkHttpHandlerWrapper(port, url_base, target, port_server):

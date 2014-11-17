@@ -4,6 +4,7 @@ from base.bind import Bind
 from window_commands import *
 from session_commands import *
 from alert_commands import *
+from element_commands import *
 from init_session_commands import ExecuteGetStatus
 
 # session commands map
@@ -30,6 +31,10 @@ WindowCommandMapping = {r'/session/([a-f0-9]+)/title$': {'GET': Bind(ExecuteGetT
 AlertCommandMapping = {r'/session/([a-f0-9]+)/accept_alert$': {'POST': Bind(ExecuteAcceptAlert)}}
 
 # element commands map
-
+ElementCommandMapping = {r'/session/([a-f0-9]+)/element/([.\-0-9]+)/text$': {'GET': Bind(ExecuteGetElementText)},
+                         r'/session/([a-f0-9]+)/element/([.\-0-9]+)/name$': {'GET': Bind(ExecuteGetElementTagName)},
+                         r'/session/([a-f0-9]+)/element/([.\-0-9]+)/selected$': {'GET': Bind(ExecuteIsElementSelected)},
+                         r'/session/([a-f0-9]+)/element/([.\-0-9]+)/enabled$': {'GET': Bind(ExecuteIsElementEnabled)},
+                         r'/session/([a-f0-9]+)/element/([.\-0-9]+)/displayed$': {'GET': Bind(ExecuteIsElementDisplayed)}}
 
 

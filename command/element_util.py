@@ -1,4 +1,5 @@
-__all__ = ["FindElement"]
+__all__ = ["FindElement", \
+           "CreateElement"]
 
 import time
 from misc.basic_types import WebPoint
