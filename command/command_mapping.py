@@ -35,6 +35,7 @@ ElementCommandMapping = {r'/session/([a-f0-9]+)/element/([.\-0-9]+)/text$': {'GE
                          r'/session/([a-f0-9]+)/element/([.\-0-9]+)/name$': {'GET': Bind(ExecuteGetElementTagName)},
                          r'/session/([a-f0-9]+)/element/([.\-0-9]+)/selected$': {'GET': Bind(ExecuteIsElementSelected)},
                          r'/session/([a-f0-9]+)/element/([.\-0-9]+)/enabled$': {'GET': Bind(ExecuteIsElementEnabled)},
-                         r'/session/([a-f0-9]+)/element/([.\-0-9]+)/displayed$': {'GET': Bind(ExecuteIsElementDisplayed)}}
-
+                         r'/session/([a-f0-9]+)/element/([.\-0-9]+)/displayed$': {'GET': Bind(ExecuteIsElementDisplayed)},
+                         r'/session/([a-f0-9]+)/element/([.\-0-9]+)/size$': {'GET': Bind(ExecuteGetElementSize)},
+                         r'/session/([a-f0-9]+)/element/([.\-0-9]+)/location$': {'GET': Bind(ExecuteGetElementLocation)}}
 

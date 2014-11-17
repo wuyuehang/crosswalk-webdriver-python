@@ -5,7 +5,9 @@ __all__ = ["ExecuteElementCommand", \
            "ExecuteGetElementTagName", \
            "ExecuteIsElementSelected", \
            "ExecuteIsElementEnabled", \
-           "ExecuteIsElementDisplayed"]
+           "ExecuteIsElementDisplayed", \
+           "ExecuteGetElementLocation", \
+           "ExecuteGetElementSize"]
 
 from element_util import *
 from browser.status import *
@@ -87,5 +89,13 @@ def ExecuteIsElementDisplayed(session, web_view, element_id, params, value):
   args.append(CreateElement(element_id))
   return web_view.CallFunction(session.GetCurrentFrameId(), IS_DISPLAYED, args, value)
 
+def ExecuteGetElementLocation(session, web_view, element_id, params, value):
+  args = []
+  args.append(CreateElement(element_id))
+  return web_view.CallFunction(session.GetCurrentFrameId(), GET_LOCATION, args, value)
 
+def ExecuteGetElementSize(session, web_view, element_id, params, value):
+  args = []
+  args.append(CreateElement(element_id))
+  return web_view.CallFunction(session.GetCurrentFrameId(), GET_SIZE, args, value)
 
