@@ -1,5 +1,10 @@
 __all__ = ["FindElement", \
-           "CreateElement"]
+           "CreateElement", \
+           "IsElementEnabled", \
+           "IsOptionElementSelected", \
+           "IsElementDisplayed", \
+           "GetElementSize", \
+           "IsOptionElementTogglable"]
 
 import time
 from misc.basic_types import WebPoint
@@ -7,6 +12,7 @@ from misc.basic_types import WebSize
 from misc.basic_types import WebRect
 from third_party.atoms import *
 from browser.status import *
+from browser.js import *
 
 kElementKey = "ELEMENT"
 
@@ -137,4 +143,108 @@ def FindElement(interval_ms, only_one, root_element_id, session, web_view, param
 
     time.sleep(float(interval_ms)/1000)
   return Status(kUnknownError)
+
+# return status and is_enabled<bool>
+def IsElementEnabled(session, web_view, element_id):
+  is_enabled = False
+  args = []
+  args.append(CreateElement(element_id))
+  result = {}
+  status = CallAtomsJs(session.GetCurrentFrameId(), web_view, IS_ENABLED, args, result)
+  if status.IsError():
+    return (status, is_enabled)
+  # we packed everything in key "value", remember?
+  is_enabled = result["value"]
+  if type(is_enabled) != bool:
+    return (Status(kUnknownError, "IS_ENABLED should return a boolean value"), False)
+  return (Status(kOk), is_enabled)
+
+# return status and is_selected<bool>
+def IsOptionElementSelected(session, web_view, element_id):
+  is_selected = False
+  args = []
+  args.append(CreateElement(element_id))
+  result = {}
+  status = CallAtomsJs(session.GetCurrentFrameId(), web_view, IS_SELECTED, args, result)
+  if status.IsError():
+    return (status, is_selected)
+  # we packed everything in key "value", remember?
+  is_selected = result["value"]
+  if type(is_selected) != bool:
+    return (Status(kUnknownError, "IS_SELECTED should return a boolean value"), False)
+  return (Status(kOk), is_selected)
+
+def GetElementSize(session, web_view, element_id, size):
+  args = []
+  args.append(CreateElement(element_id))
+  result = {}
+  status = CallAtomsJs(session.GetCurrentFrameId(), web_view, GET_SIZE, args, result)
+  if status.IsError():
+    return status
+  # we packed everything in key "value", remember?
+  if not ParseFromValue(result["value"], size):
+    return Status(kUnknownError, "failed to parse value of GET_SIZE")
+  return Status(kOk)
+
+# return status and is_displayed<bool>
+def IsElementDisplayed(session, web_view, element_id, ignore_opacity):
+  is_displayed = False
+  args = []
+  args.append(CreateElement(element_id))
+  args.append(ignore_opacity)
+  result = {}
+  status = CallAtomsJs(session.GetCurrentFrameId(), web_view, IS_DISPLAYED, args, result)
+  if status.IsError():
+    return (status, is_displayed)
+  # we packed everything in key "value", remember?
+  is_displayed = result["value"] 
+  if type(is_displayed) != bool:
+    return (Status(kUnknownError, "IS_DISPLAYED should return a boolean value"), False)
+  return (Status(kOk), is_displayed)
+
+# return status and is_togglable<bool>
+def IsOptionElementTogglable(session, web_view, element_id):
+  is_togglable = False
+  args = []
+  args.append(CreateElement(element_id))
+  result = {}
+  status = web_view.CallFunction(session.GetCurrentFrameId(), kIsOptionElementToggleableScript, args, result)
+  if status.IsError():
+    return (status, is_togglable)
+  # we packed everything in key "value", remember?
+  is_togglable = result["value"]
+  if type(is_togglable) != bool:
+    return (Status(kUnknownError, "failed check if option togglable or not"), False)
+  return (Status(kOk), is_togglable)
+
+def SetOptionElementSelected(session, web_view, element_id, selected):
+  # TODO(wyh): need to fix throwing error if an alert is triggered.
+  args = []
+  args.append(CreateElement(element_id))
+  args.append(selected)
+  return CallAtomsJs(session.GetCurrentFrameId(), web_view, CLICK, args, {})
+
+def GetActiveElement(session, web_view, value):
+  return web_view.CallFunction(session.GetCurrentFrameId(), "function() { return document.activeElement || document.body }", [], value)
+
+def GetElementAttribute(session, web_view, element_id, attribute_name, value):
+  args = []
+  args.append(CreateElement(element_id))
+  args.append(attribute_name)
+  return CallAtomsJs(session.GetCurrentFrameId(), web_view, GET_ATTRIBUTE, args, value)
+
+# return status and name<string>
+def GetElementTagName(session, web_view, element_id):
+  name = ""
+  args = []
+  args.append(CreateElement(element_id))
+  result = {}
+  status = web_view.CallFunction(session.GetCurrentFrameId(), "function(elem) { return elem.tagName.toLowerCase(); }", args, result)
+  if status.IsError():
+    return (status, name)
+  # we packed everything in key "value", remember?
+  name = result["value"]
+  if type(name) != str:
+    return (Status(kUnknownError, "failed to get element tag name"), "")
+  return (Status(kOk), name)
 
