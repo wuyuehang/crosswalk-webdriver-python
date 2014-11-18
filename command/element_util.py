@@ -248,3 +248,53 @@ def GetElementTagName(session, web_view, element_id):
     return (Status(kUnknownError, "failed to get element tag name"), "")
   return (Status(kOk), name)
 
+# return status and is_focused<bool>
+def IsElementFocused(session, web_view, element_id):
+  is_focused = False
+  result = {}
+  status = GetActiveElement(session, web_view, result)
+  if status.IsError():
+    return (status, is_focused)
+  element_dict = CreateElement(element_id)
+  # we packed everything in key "value", remember?
+  is_focused = (result["value"] == element_dict)
+  return (Status(kOk), is_focused)
+
+def GetElementAttribute(session, web_view, element_id, attribute_name, value):
+  args = []
+  args.append(CreateElement(element_id))
+  args.append(attribute_name)
+  return CallAtomsJs(session.GetCurrentFrameId(), web_view, GET_ATTRIBUTE, args, value)
+
+def ToggleOptionElement(session, web_view, element_id):
+  is_selected = False
+  (status, is_selected) = IsOptionElementSelected(session, web_view, element_id)
+  if status.IsError():
+    return status
+  return SetOptionElementSelected(session, web_view, element_id, not is_selected)
+
+def GetElementRegion(session, web_view, element_id, rect):
+  args = []
+  args.append(CreateElement(element_id))
+  result = {}
+  status = web_view.CallFunction(session.GetCurrentFrameId(), kGetElementRegionScript, args, result)
+  if status.IsError():
+    return status
+  if not ParseFromValue(result["value"], rect):
+    return Status(kUnknownError, "failed to parse value of getElementRegion")
+  return Status(kOk)
+
+def GetElementEffectiveStyle(frame, web_view, element_id, sproperty, value):
+  args = []
+  args.append(CreateElement(element_id))
+  args.append(sproperty)
+  result = {}
+  status = web_view.CallFunction(frame, GET_EFFECTIVE_STYLE, args, result)
+  if status.IsError():
+    return status
+  if type(result["value"]) != str:
+    return Status(kUnknownError, "failed to parse value of GET_EFFECTIVE_STYLE")
+  value.clear()
+  value.update(result)
+  return Status(kOk)
+
