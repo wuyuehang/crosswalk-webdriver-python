@@ -1,12 +1,31 @@
-__all__ = ["FindElement", \
+__all__ = ["ParseFromValue", \
+           "CreateValueFrom", \
            "CreateElement", \
+           "CallAtomsJs", \
+           "VerifyElementClickable", \
+           "FindElement", \
            "IsElementEnabled", \
            "IsOptionElementSelected", \
-           "IsElementDisplayed", \
            "GetElementSize", \
-           "IsOptionElementTogglable"]
+           "IsElementDisplayed", \
+           "IsOptionElementTogglable",\
+           "SetOptionElementSelected", \
+           "GetActiveElement", \
+           "GetElementAttribute", \
+           "GetElementTagName", \
+           "IsElementFocused", \
+           "ToggleOptionElement", \
+           "GetElementRegion", \
+           "GetElementEffectiveStyle", \
+           "GetElementBorder", \
+           "ScrollElementRegionIntoViewHelper", \
+           "IsElementAttributeEqualToIgnoreCase", \
+           "ScrollElementRegionIntoView", \
+           "ScrollElementIntoView", \
+           "GetElementClickableLocation"]
 
 import time
+import copy
 from misc.basic_types import WebPoint
 from misc.basic_types import WebSize
 from misc.basic_types import WebRect
@@ -260,12 +279,6 @@ def IsElementFocused(session, web_view, element_id):
   is_focused = (result["value"] == element_dict)
   return (Status(kOk), is_focused)
 
-def GetElementAttribute(session, web_view, element_id, attribute_name, value):
-  args = []
-  args.append(CreateElement(element_id))
-  args.append(attribute_name)
-  return CallAtomsJs(session.GetCurrentFrameId(), web_view, GET_ATTRIBUTE, args, value)
-
 def ToggleOptionElement(session, web_view, element_id):
   is_selected = False
   (status, is_selected) = IsOptionElementSelected(session, web_view, element_id)
@@ -284,17 +297,168 @@ def GetElementRegion(session, web_view, element_id, rect):
     return Status(kUnknownError, "failed to parse value of getElementRegion")
   return Status(kOk)
 
-def GetElementEffectiveStyle(frame, web_view, element_id, sproperty, value):
+# return status and value<string>
+def GetElementEffectiveStyle(frame, web_view, element_id, sproperty):
+  style = ""
   args = []
   args.append(CreateElement(element_id))
   args.append(sproperty)
   result = {}
   status = web_view.CallFunction(frame, GET_EFFECTIVE_STYLE, args, result)
   if status.IsError():
+    return (status, style)
+  style = result["value"]
+  if type(style) != str:
+    return (Status(kUnknownError, "failed to parse value of GET_EFFECTIVE_STYLE"), "")
+  return (Status(kOk), style)
+
+# return status and border_left<int> and border_top<int>
+def GetElementBorder(frame, web_view, element_id):
+  (status, border_left_str) = GetElementEffectiveStyle(frame, web_view, element_id, "border-left-width")
+  if status.IsError():
+    return (status, -1, -1)
+  (status, border_top_str) = GetElementEffectiveStyle(frame, web_view, element_id, "border-top-width")
+  if status.IsError():
+    return (status, -1, -1)
+  try:
+    border_left = int(border_left_str)
+    border_top = int(border_top_str)
+  except:
+    return (Status(kUnknownError, "failed to get border width of element"), -1, -1)
+  return (Status(kOk), border_left, border_top)
+
+def ScrollElementRegionIntoViewHelper(frame, web_view, element_id, region, center, clickable_element_id, location):
+  tmp_location = copy.deepcopy(location)
+  args = []
+  args.append(CreateElement(element_id))
+  args.append(center)
+  args.append(CreateValueFrom(region))
+  result = {}
+  status = web_view.CallFunction(frame, GET_LOCATION_IN_VIEW, args, result)
+  if status.IsError():
     return status
-  if type(result["value"]) != str:
-    return Status(kUnknownError, "failed to parse value of GET_EFFECTIVE_STYLE")
-  value.clear()
-  value.update(result)
+  if not ParseFromValue(result["value"], tmp_location):
+    return Status(kUnknownError, "failed to parse value of GET_LOCATION_IN_VIEW")
+  if clickable_element_id:
+    tmp_location.Offset(region.Width() / 2, region.Height() / 2)
+    status = VerifyElementClickable(frame, web_view, clickable_element_id, tmp_location)
+    if status.IsError():
+      return status
+  location.Update(tmp_location)
+  return Status(kOk)
+
+# return status and is_equal<bool>
+def IsElementAttributeEqualToIgnoreCase(session, web_view, element_id, attribute_name, attribute_value):
+  is_equal = False
+  result = {}
+  status = GetElementAttribute(session, web_view, element_id, attribute_name, result)
+  if status.IsError():
+    return (status, is_equal)
+  actual_value = result["value"]
+  if type(actual_value) == str:
+    is_equal = (actual_value.lower() == attribute_value.lower())
+  else:
+    is_equal = False
+  return (status, is_equal)
+
+def ScrollElementRegionIntoView(session, web_view, element_id, region, center, clickable_element_id, location):
+  region_offset = region.origin;
+  region_size = region.size;
+  status = ScrollElementRegionIntoViewHelper(session.GetCurrentFrameId(), web_view, element_id, \
+                                              region, center, clickable_element_id, region_offset)
+  if status.IsError():
+    return status
+  kFindSubFrameScript = \
+      "function(xpath) {"\
+      "  return document.evaluate(xpath, document, null,"\
+      "      XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;"\
+      "}"
+  session_frames_tmp = copy.deepcopy(session.frames)
+  session_frames_tmp.reverse()
+  for rit in session_frames_tmp:
+    args = []
+    args.append("//*[@cd_frame_id_ = '%s']" % rit.xwalkdriver_frame_id)
+    result = {}
+    status = web_view.CallFunction(rit.parent_frame_id, kFindSubFrameScript, args, result)
+    if status.IsError():
+      return status
+    element_dict = result["value"]
+    if type(element_dict) != dict:
+      return Status(kUnknownError, "no element reference returned by script")
+    frame_element_id = element_dict.get(kElementKey)
+    if type(frame_element_id) != str:
+      return Status(kUnknownError, "failed to locate a sub frame")
+
+    # Modify |region_offset| by the frame's border.
+    (status, border_left, border_top) = GetElementBorder(rit.parent_frame_id, web_view, frame_element_id)
+    if status.IsError():
+      return status
+    region_offset.Offset(border_left, border_top)
+
+    status = ScrollElementRegionIntoViewHelper(rit.parent_frame_id, web_view, frame_element_id, \
+                                  WebRect(region_offset, region_size), center, frame_element_id, region_offset)
+    if status.IsError():
+      return status
+  location.Update(region_offset)
+  return Status(kOk)
+
+def ScrollElementIntoView(session, web_view, sid, location):
+  size = WebSize()
+  status = GetElementSize(session, web_view, sid, size);
+  if status.IsError():
+    return status
+  return ScrollElementRegionIntoView(session, web_view, sid, WebRect(WebPoint(0, 0), size), False, "", location)
+
+def GetElementClickableLocation(session, web_view, element_id, location):
+  (status, tag_name) = GetElementTagName(session, web_view, element_id)
+  if status.IsError():
+    return status
+  target_element_id = element_id
+  if (tag_name == "area"):
+    # Scroll the image into view instead of the area.
+    kGetImageElementForArea = \
+        "function (element) {"\
+        "  var map = element.parentElement;"\
+        "  if (map.tagName.toLowerCase() != 'map')"\
+        "    throw new Error('the area is not within a map');"\
+        "  var mapName = map.getAttribute('name');"\
+        "  if (mapName == null)"\
+        "    throw new Error ('area\\'s parent map must have a name');"\
+        "  mapName = '#' + mapName.toLowerCase();"\
+        "  var images = document.getElementsByTagName('img');"\
+        "  for (var i = 0; i < images.length; i++) {"\
+        "    if (images[i].useMap.toLowerCase() == mapName)"\
+        "      return images[i];"\
+        "  }"\
+        "  throw new Error('no img is found for the area');"\
+        "}"
+    args = []
+    args.append(CreateElement(element_id))
+    result = {}
+    status = web_view.CallFunction(session.GetCurrentFrameId(), kGetImageElementForArea, args, result)
+    if status.IsError():
+      return status
+    element_dict = result["value"]
+    if type(element_dict) != dict:
+      return Status(kUnknownError, "no element reference returned by script")
+    target_element_id = element_dict.get(kElementKey)
+    if type(target_element_id) != str: 
+      return Status(kUnknownError, "no element reference returned by script")
+
+  (status, is_displayed) = IsElementDisplayed(session, web_view, target_element_id, True)
+  if status.IsError():
+    return status
+  if not is_displayed:
+    return Status(kElementNotVisible)
+
+  rect = WebRect()
+  status = GetElementRegion(session, web_view, element_id, rect)
+  if status.IsError():
+    return status
+
+  status = ScrollElementRegionIntoView(session, web_view, target_element_id, rect, True, element_id, location)
+  if status.IsError():
+    return status
+  location.Offset(rect.Width() / 2, rect.Height() / 2)
   return Status(kOk)
 

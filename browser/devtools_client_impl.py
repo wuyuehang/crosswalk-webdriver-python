@@ -80,7 +80,7 @@ class _ScopedIncrementer(object):
 
 # return status and is_condition_met 
 def _ConditionIsMet(): 
-  return Status(kOk), True
+  return (Status(kOk), True)
 
 def _ParseInspectorMessage(message, expected_id, message_type, event, command_response):
   message_dict = yaml.load(message)
@@ -97,8 +97,8 @@ def _ParseInspectorMessage(message, expected_id, message_type, event, command_re
     return True
   elif type(message_dict["id"]) == int:
     sid = message_dict["id"]
-    unscoped_error = message_dict.get("error", None)
-    unscoped_result = message_dict.get("result", None)
+    unscoped_error = message_dict.get("error")
+    unscoped_result = message_dict.get("result")
     if type(unscoped_error) != dict and type(unscoped_result) != dict:
       return False
     message_type.typer = kCommandResponseMessageType
@@ -184,11 +184,11 @@ class DevToolsClientImpl(DevToolsClient):
     #    Also gives listeners a chance to send commands before other clients.
     return self._EnsureListenersNotifiedOfConnect()
  
-  def SendCommand(self, method="", params={}):
+  def SendCommand(self, method, params):
     status = self._SendCommandInternal(method, params, {})
     return status
 
-  def SendCommandAndGetResult(self, method="", params={}, result={}):
+  def SendCommandAndGetResult(self, method, params, result):
     intermediate_result = {}
     status = self._SendCommandInternal(method, params, intermediate_result)
     if status.IsError():
@@ -210,7 +210,7 @@ class DevToolsClientImpl(DevToolsClient):
     while True:
       if not self.socket._recv_buffer:
         is_condition_met = False
-        status, is_condition_met = conditional_func.Run()
+        (status, is_condition_met) = conditional_func.Run()
         if status.IsError():
           return status
         if is_condition_met:
@@ -223,13 +223,12 @@ class DevToolsClientImpl(DevToolsClient):
   def  HandleReceivedEvents(self):
     return self.HandleEventsUntil(Bind(_ConditionIsMet), 0)
 
-  def _SendCommandInternal(self, method="", params={}, result={}):
+  def _SendCommandInternal(self, method, params, result):
     if not self.socket.connected:
       return Status(kDisconnected, "not connected to DevTools")
     command_id = self.next_id
     self.next_id += 1
     command = {'id': command_id, 'method': method, 'params': params}
-    #VLOG(0, "DEVTOOLS COMMAND: " + method + " (id= " + str(command_id) + ") " + str(params))
     message = json.dumps(command)
     print "sending to dev server %s" % message
     try:

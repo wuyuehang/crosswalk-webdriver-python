@@ -6,9 +6,14 @@ class WebPoint(object):
     self.x = x
     self.y = y
 
-  def Offset(x, y):
+  def Offset(self, x, y):
     self.x += x
     self.y += y
+    return
+    
+  def Update(self, other):
+    self.x = other.x
+    self.y = other.y
     return
 
 class WebSize(object):
