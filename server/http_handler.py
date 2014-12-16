@@ -271,6 +271,12 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   def ElementCommandHandler(self):
     execute_cmd = None
     element_id = None
+    # for those special commands which own more than 2 params packed in url request
+    # we need extrally store them
+    # /session/:sessionId/element/:id/attribute/:name
+    # /session/:sessionId/element/:id/equals/:other
+    # /session/:sessionId/element/:id/css/:propertyName
+    extra_url_params = None
     # parse what kind of element command
     for key, value in ElementCommandMapping.iteritems():
       matchObj = re.match(key, self.path)
@@ -280,6 +286,8 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if execute_cmd != None:
           target_session_id = matchObj.groups()[0]
           element_id = matchObj.groups()[1]
+          if len(matchObj.groups()) == 3:
+            extra_url_params = matchObj.groups()[2]
           break
     # ignore invalid command
     if execute_cmd == None:
@@ -301,8 +309,9 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       varLen = 0
     if varLen:
       content = self.rfile.read(varLen)
-      #params = json.loads(content)
       params = yaml.load(content)
+    # don't forget to insert extra_url_params
+    params["extra_url_params"] = extra_url_params
     # make up element command
     element_cmd = Bind(ExecuteElementCommand, [execute_cmd, element_id, target_thread.session, params, target_thread.value])
     # prepare response to selenium command

@@ -1,3 +1,4 @@
+# KeyboardCode
 VKEY_BACK = 0x08
 VKEY_TAB = 0x09
 VKEY_BACKTAB = 0x0A
@@ -72,7 +73,7 @@ VKEY_X = 0x58
 VKEY_Y = 0x59
 VKEY_Z = 0x5A
 VKEY_LWIN = 0x5B
-VKEY_COMMAND = 0x5B
+VKEY_COMMAND = VKEY_LWIN  # Provide the Mac name for convenience.
 VKEY_RWIN = 0x5C
 VKEY_APPS = 0x5D
 VKEY_SLEEP = 0x5F
@@ -155,8 +156,8 @@ VKEY_OEM_6 = 0xDD
 VKEY_OEM_7 = 0xDE
 VKEY_OEM_8 = 0xDF
 VKEY_OEM_102 = 0xE2
-VKEY_OEM_103 = 0xE3
-VKEY_OEM_104 = 0xE4D
+VKEY_OEM_103 = 0xE3  # GTV KEYCODE_MEDIA_REWIND
+VKEY_OEM_104 = 0xE4  # GTV KEYCODE_MEDIA_FAST_FORWARD
 VKEY_PROCESSKEY = 0xE5
 VKEY_PACKET = 0xE7
 VKEY_DBE_SBCSCHAR = 0xF3
@@ -172,7 +173,7 @@ VKEY_PA1 = 0xFD
 VKEY_OEM_CLEAR = 0xFE
 VKEY_UNKNOWN = 0
 
-# POSIX specific VKEYs. Note that as of Windows SDK 7.1, 0x97-9F, 0xD8-DA,
+# POSIX specific VKEYs. Note that as of Windows SDK 7.1, 0x97-9F, 0xD8-DA
 # and 0xE8 are unassigned.
 VKEY_WLAN = 0x97
 VKEY_POWER = 0x98
@@ -182,9 +183,11 @@ VKEY_KBD_BRIGHTNESS_DOWN = 0xDA
 VKEY_KBD_BRIGHTNESS_UP = 0xE8
 
 # Windows does not have a specific key code for AltGr. We use the unused 0xE1
-# (VK_OEM_AX) code to represent AltGr, matching the behaviour of Firefox on
+# (VK_OEM_AX) code to represent AltGr matching the behaviour of Firefox on
 # Linux.
 VKEY_ALTGR = 0xE1
+
+# For X11
 # Windows does not have a specific key code for Compose. We use the unused
 # 0xE6 (VK_ICO_CLEAR) code to represent Compose.
 VKEY_COMPOSE = 0xE6

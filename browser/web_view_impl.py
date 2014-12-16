@@ -15,6 +15,7 @@ from devtools_client_impl import DevToolsClientImpl
 from heap_snapshot_taker import HeapSnapshotTaker
 from dom_tracker import DomTracker
 import json
+import copy
 
 # EvaluateScriptReturnType 
 ReturnByValue = 0
@@ -432,4 +433,39 @@ class WebViewImpl(WebView):
     if not found_node:
       return Status(kNoSuchFrame)
     return self.dom_tracker.GetFrameIdForNode(node_id)
+
+  def SetFileInputFiles(self, frame, element, files):
+    file_list = []
+    for i in files:
+      if not i.startswith("/"):
+        return Status(kUnknownError, "path is not absolute: " + i)
+      if i.find(".") != -1:
+        return Status(kUnknownError, "path is not canonical: " + i)
+      file_list.append(i)
+
+    (status, context_id) = _GetContextIdForFrame(self.frame_tracker, frame)
+    if status.IsError():
+      return status
+    args = []
+    args.append(copy.deepcopy(element))
+    (status, found_node, node_id) = _GetNodeIdFromFunction(self.client, context_id, "function(element) { return element; }", args)
+    if status.IsError():
+      return status
+    if not found_node:
+      return Status(kUnknownError, "no node ID for file input")
+    params = {}
+    params["nodeId"] = node_id
+    params["files"] = file_list
+    return self.client.SendCommand("DOM.setFileInputFiles", params)
+
+  # return status and screenshot<string>
+  def CaptureScreenshot(self):
+    result = {}
+    status = self.client.SendCommandAndGetResult("Page.captureScreenshot", {}, result)
+    if status.IsError():
+      return (status, "")
+    screenshot = result["value"].get("data")
+    if type(screenshot) != str:
+      return (Status(kUnknownError, "expected string 'data' in response"), "")
+    return (Status(kOk), screenshot)
 
