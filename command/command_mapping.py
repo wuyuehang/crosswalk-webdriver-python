@@ -41,5 +41,10 @@ ElementCommandMapping = {r'/session/([a-f0-9]+)/element/([.\-0-9]+)/text$': {'GE
                          r'/session/([a-f0-9]+)/element/([.\-0-9]+)/size$': {'GET': Bind(ExecuteGetElementSize)},
                          r'/session/([a-f0-9]+)/element/([.\-0-9]+)/location$': {'GET': Bind(ExecuteGetElementLocation)},
                          r'/session/([a-f0-9]+)/element/([.\-0-9]+)/clear$': {'POST': Bind(ExecuteClearElement)},
-                         r'/session/([a-f0-9]+)/element/([.\-0-9]+)/attribute/(\w+)$': {'GET': Bind(ExecuteGetElementAttribute)}}
+                         r'/session/([a-f0-9]+)/element/([.\-0-9]+)/attribute/(\w+)$': {'GET': Bind(ExecuteGetElementAttribute)},
+                         r'/session/([a-f0-9]+)/element/([.\-0-9]+)/value$': {'GET': Bind(ExecuteGetElementValue)},
+                         r'/session/([a-f0-9]+)/element/([.\-0-9]+)/css/(.+)$': {'GET': Bind(ExecuteGetElementValueOfCSSProperty)},
+                         r'/session/([a-f0-9]+)/element/([.\-0-9]+)/equals/(.+)$': {'GET': Bind(ExecuteElementEquals)},
+                         r'/session/([a-f0-9]+)/element/([.\-0-9]+)/submit$': {'POST': Bind(ExecuteSubmitElement)},
+                         r'/session/([a-f0-9]+)/element/([.\-0-9]+)/location_in_view$': {'GET': Bind(ExecuteGetElementLocationOnceScrolledIntoView)}}
 

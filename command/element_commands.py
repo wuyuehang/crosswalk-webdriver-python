@@ -9,7 +9,12 @@ __all__ = ["ExecuteElementCommand", \
            "ExecuteGetElementLocation", \
            "ExecuteGetElementSize", \
            "ExecuteClearElement", \
-           "ExecuteGetElementAttribute"]
+           "ExecuteGetElementAttribute", \
+           "ExecuteGetElementValue", \
+           "ExecuteGetElementValueOfCSSProperty", \
+           "ExecuteElementEquals", \
+           "ExecuteSubmitElement", \
+           "ExecuteGetElementLocationOnceScrolledIntoView"]
 
 import time
 from element_util import *
@@ -119,8 +124,42 @@ def ExecuteGetElementAttribute(session, web_view, element_id, params, value):
     return Status(kUnknownError, "missing 'name'")
   return GetElementAttribute(session, web_view, element_id, name, value)
 
-####### remain test api #####################
-"""
+def ExecuteGetElementValue(session, web_view, element_id, params, value):
+  args = []
+  args.append(CreateElement(element_id))
+  return web_view.CallFunction(session.GetCurrentFrameId(), \
+        "function(elem) { return elem['value'] }", args, value)
+
+def ExecuteGetElementValueOfCSSProperty(session, web_view, element_id, params, value):
+  # the desired parameter comes from url request not url content
+  # we define it on our own, make the name of key look fool that will not 
+  # conflict with the standard label
+  property_name = params.get("extra_url_params")
+  if type(property_name) != str:
+    return Status(kUnknownError, "missing 'propertyName'")
+  (status, property_value) = GetElementEffectiveStyle(session.GetCurrentFrameId(), web_view, element_id, property_name)
+  if status.IsError():
+    return status
+  value.clear()
+  value.update({"value": property_value})
+  return Status(kOk)
+
+def ExecuteElementEquals(session, web_view, element_id, params, value):
+  # the desired parameter comes from url request not url content
+  # we define it on our own, make the name of key look fool that will not 
+  # conflict with the standard label
+  other_element_id = params.get("extra_url_params")
+  if type(other_element_id) != str:
+    return Status(kUnknownError, "'other' must be a string")
+  value.clear()
+  value.update({"value": (element_id == other_element_id)})
+  return Status(kOk)
+
+def ExecuteSubmitElement(session, web_view, element_id, params, value):
+  args = []
+  args.append(CreateElement(element_id))
+  return web_view.CallFunction(session.GetCurrentFrameId(), SUBMIT, args, value)
+
 def ExecuteGetElementLocationOnceScrolledIntoView(session, web_view, element_id, params, value):
   location = WebPoint()
   status = ScrollElementIntoView(session, web_view, element_id, location)
@@ -130,37 +169,8 @@ def ExecuteGetElementLocationOnceScrolledIntoView(session, web_view, element_id,
   value.update({"value": CreateValueFrom(location)})
   return Status(kOk)
 
-
-def ExecuteSubmitElement(session, web_view, element_id, params, value):
-  args = []
-  args.append(CreateElement(element_id))
-  return web_view.CallFunction(session.GetCurrentFrameId(), SUBMIT, args, value)
-
-def ExecuteGetElementValue(session, web_view, element_id, params, value):
-  args = []
-  args.append(CreateElement(element_id))
-  return web_view.CallFunction(session.GetCurrentFrameId(), \
-        "function(elem) { return elem['value'] }", args, value)
-
-def ExecuteGetElementValueOfCSSProperty(session, web_view, element_id, params, value):
-  property_name = params,get("propertyName")
-  if type(property_name) != str:
-    return Status(kUnknownError, "missing 'propertyName'")
-  (status, property_value) = GetElementEffectiveStyle(session, web_view, element_id, property_name)
-  if status.IsError():
-    return status
-  value.clear()
-  value.update({"value": property_value})
-  return Status(kOk)
-
-def ExecuteElementEquals(session, web_view, element_id, params, value):
-  other_element_id = params.get("other")
-  if type(other_element_id) != str:
-    return Status(kUnknownError, "'other' must be a string")
-  value.clear()
-  value.update({"value": (element_id == other_element_id)})
-  return Status(kOk)
-
+####### remain test api #####################
+"""
 def SendKeysToElement(session, web_view, element_id, key_list):
   is_displayed = False
   is_focused = False

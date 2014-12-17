@@ -42,33 +42,33 @@ def ParseFromValue(value, target):
   if isinstance(target, WebPoint):
     x = value.get("x")
     y = value.get("y")
-    if type(x) != float or type(y) != float:
-      return False
-    target.x = int(x)
-    target.y = int(y)
-    return True
+    if type(x) in [float, int] and type(y) in [float, int]:
+      target.x = int(x)
+      target.y = int(y)
+      return True
+    return False
   # target is WebSize
   if isinstance(target, WebSize):
     width = value.get("width")
     height = value.get("height")
-    if type(width) != float or type(height) != float:
-      return False
-    target.width = int(width)
-    target.height = int(height)
-    return True
+    if type(width) in [float, int] and type(height) in [float, int]:
+      target.width = int(width)
+      target.height = int(height)
+      return True
+    return False
   # target is WebRect
   if isinstance(target, WebRect):
     x = value.get("left")
     y = value.get("right")
     width = value.get("width")
     height = value.get("height")
-    if type(x) != float or type(y) != float or type(width) != float or type(height) != float:
-      return False
-    target.origin.x = int(x)
-    target.origin.y = int(y)
-    target.size.width = int(width)
-    target.size.height = int(height)
-    return True
+    if type(x) in [float, int] and type(y) in [float, int] and type(width) in [float, int] and type(height) in [float, int]:
+      target.origin.x = int(x)
+      target.origin.y = int(y)
+      target.size.width = int(width)
+      target.size.height = int(height)
+      return True
+    return False
   
 def CreateValueFrom(target):
   dict_value = {}
@@ -76,6 +76,7 @@ def CreateValueFrom(target):
   if isinstance(target, WebPoint):
     dict_value["x"] = target.x
     dict_value["y"] = target.y
+    return dict_value
   # create value from WebSize
   if isinstance(target, WebSize):
     dict_value["width"] = target.width
@@ -331,8 +332,9 @@ def ScrollElementRegionIntoViewHelper(frame, web_view, element_id, region, cente
   tmp_location = copy.deepcopy(location)
   args = []
   args.append(CreateElement(element_id))
-  args.append(center)
   args.append(CreateValueFrom(region))
+  # TODO(wyh): why append the following param between above two cause the null value of y?
+  args.append(center)
   result = {}
   status = web_view.CallFunction(frame, GET_LOCATION_IN_VIEW, args, result)
   if status.IsError():
@@ -394,7 +396,6 @@ def ScrollElementRegionIntoView(session, web_view, element_id, region, center, c
     if status.IsError():
       return status
     region_offset.Offset(border_left, border_top)
-
     status = ScrollElementRegionIntoViewHelper(rit.parent_frame_id, web_view, frame_element_id, \
                                   WebRect(region_offset, region_size), center, frame_element_id, region_offset)
     if status.IsError():
@@ -407,7 +408,8 @@ def ScrollElementIntoView(session, web_view, sid, location):
   status = GetElementSize(session, web_view, sid, size);
   if status.IsError():
     return status
-  return ScrollElementRegionIntoView(session, web_view, sid, WebRect(WebPoint(0, 0), size), False, "", location)
+  status = ScrollElementRegionIntoView(session, web_view, sid, WebRect(WebPoint(0, 0), size), False, "", location)
+  return status
 
 def GetElementClickableLocation(session, web_view, element_id, location):
   (status, tag_name) = GetElementTagName(session, web_view, element_id)
