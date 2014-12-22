@@ -61,7 +61,7 @@ class MouseEvent(object):
     self.button = mouse_button
     self.x = x
     self.y = y
-    self.modifiers = modifier
+    self.modifiers = modifiers
     # |click_count| should not be negative.
     self.click_count = click_count
 

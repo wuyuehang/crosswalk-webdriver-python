@@ -14,7 +14,8 @@ __all__ = ["ExecuteElementCommand", \
            "ExecuteGetElementValueOfCSSProperty", \
            "ExecuteElementEquals", \
            "ExecuteSubmitElement", \
-           "ExecuteGetElementLocationOnceScrolledIntoView"]
+           "ExecuteGetElementLocationOnceScrolledIntoView", 
+           "ExecuteClickElement"]
 
 import time
 from element_util import *
@@ -169,6 +170,48 @@ def ExecuteGetElementLocationOnceScrolledIntoView(session, web_view, element_id,
   value.update({"value": CreateValueFrom(location)})
   return Status(kOk)
 
+def ExecuteTouchSingleTapAtom(session, web_view, element_id, params, value):
+  args = []
+  args.append(CreateElement(element_id))
+  return web_view.CallFunction(session.GetCurrentFrameId(), TOUCH_SINGLE_TAP, args, value)
+
+def ExecuteClickElement(session, web_view, element_id, params, value):
+  (status, tag_name) = GetElementTagName(session, web_view, element_id)
+  if status.IsError():
+    return status
+  print "------------------tagname: " + tag_name
+  if tag_name == "option":
+    (status, is_toggleable) = IsOptionElementTogglable(session, web_view, element_id)
+    print "---- is_toggleable %s" % str(is_toggleable)
+    if status.IsError():
+      return status
+    if is_toggleable:
+      return ToggleOptionElement(session, web_view, element_id);
+    else:
+      return SetOptionElementSelected(session, web_view, element_id, True)
+  else:
+    location = WebPoint()
+    status = GetElementClickableLocation(session, web_view, element_id, location)
+    print "------------- GetElementClickableLocation %s" % status.Message()
+    print "----------location %d %d" % (location.x, location.y)
+    print "----------session.sticky_modifiers %d" % session.sticky_modifiers
+    if status.IsError():
+      return status
+    
+    events = []
+    events.append(MouseEvent(kMovedMouseEventType, kNoneMouseButton, \
+                   location.x, location.y, session.sticky_modifiers, 0))
+    events.append(MouseEvent(kPressedMouseEventType, kLeftMouseButton, \
+                   location.x, location.y, session.sticky_modifiers, 1))
+    events.append(MouseEvent(kReleasedMouseEventType, kLeftMouseButton, \
+                   location.x, location.y, session.sticky_modifiers, 1))
+
+    status = web_view.DispatchMouseEvents(events, session.GetCurrentFrameId())
+    print "------------DispatchMouseEvents %s" % status.Message()
+    if status.IsOk():
+      session.mouse_position.Update(location)
+    return status
+
 ####### remain test api #####################
 """
 def SendKeysToElement(session, web_view, element_id, key_list):
@@ -208,11 +251,6 @@ def SendKeysToElement(session, web_view, element_id, key_list):
   (status, session.sticky_modifiers) = SendKeysOnWindow(web_view, key_list, True)
   return status
 
-def ExecuteTouchSingleTapAtom(session, web_view, element_id, params, value):
-  args = []
-  args.append(CreateElement(element_id))
-  return web_view.CallFunction(session.GetCurrentFrameId(), TOUCH_SINGLE_TAP, args, value)
-
 def ExecuteHoverOverElement(session, web_view, element_id, params, value):
   location = WebPoint()
   status = GetElementClickableLocation(session, web_view, element_id, location)
@@ -226,37 +264,6 @@ def ExecuteHoverOverElement(session, web_view, element_id, params, value):
   if status.IsOk():
     session.mouse_position.Update(location)
   return status
-
-def ExecuteClickElement(session, web_view, element_id, params, value):
-  (status, tag_name) = GetElementTagName(session, web_view, element_id)
-  if status.IsError():
-    return status
-  if tag_name == "option":
-    (status, is_toggleable) = IsOptionElementTogglable(session, web_view, element_id)
-    if status.IsError():
-      return status
-    if is_toggleable:
-      return ToggleOptionElement(session, web_view, element_id);
-    else
-      return SetOptionElementSelected(session, web_view, element_id, True)
-  else:
-    location = WebPoint()
-    status = GetElementClickableLocation(session, web_view, element_id, location)
-    if status.IsError():
-      return status
-    
-    events = []
-    events.append(MouseEvent(kMovedMouseEventType, kNoneMouseButton, \
-                   location.x, location.y, session.sticky_modifiers, 0))
-    events.append(MouseEvent(kPressedMouseEventType, kLeftMouseButton, \
-                   location.x, location.y, session.sticky_modifiers, 1))
-    events.append(MouseEvent(kReleasedMouseEventType, kLeftMouseButton, \
-                   location.x, location.y, session->sticky_modifiers, 1))
-
-    status = web_view.DispatchMouseEvents(events, session.GetCurrentFrameId())
-    if status.IsOk():
-      session.mouse_position.Update(location)
-    return status
 
 def ExecuteTouchSingleTap(session, web_view, element_id, params, value):
   # Fall back to javascript atom for pre-m30 Xwalk.

@@ -291,7 +291,7 @@ class WebViewImpl(WebView):
         args = []
         args.append(it.x)
         args.append(it.y)
-        args.appendInteger(it.modifiers)
+        args.append(it.modifiers)
         result = {}
         status = self.CallFunction(frame, kDispatchContextMenuEventScript, args, result)
         if status.IsError():

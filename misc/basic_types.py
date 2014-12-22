@@ -7,8 +7,8 @@ class WebPoint(object):
     self.y = y
 
   def Offset(self, x, y):
-    self.x += x
-    self.y += y
+    self.x = self.x + x
+    self.y = self.y + y
     return
     
   def Update(self, other):

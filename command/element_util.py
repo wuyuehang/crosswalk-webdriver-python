@@ -59,7 +59,7 @@ def ParseFromValue(value, target):
   # target is WebRect
   if isinstance(target, WebRect):
     x = value.get("left")
-    y = value.get("right")
+    y = value.get("top")
     width = value.get("width")
     height = value.get("height")
     if type(x) in [float, int] and type(y) in [float, int] and type(width) in [float, int] and type(height) in [float, int]:
@@ -107,7 +107,7 @@ def VerifyElementClickable(frame, web_view, element_id, location):
   if status.IsError():
     return status
   is_clickable = False
-  is_clickable = result.get("clickable")
+  is_clickable = result["value"].get("clickable")
   if type(is_clickable) != bool:
     return Status(kUnknownError, "failed to parse value of IS_ELEMENT_CLICKABLE")
   if not is_clickable:
@@ -333,8 +333,9 @@ def ScrollElementRegionIntoViewHelper(frame, web_view, element_id, region, cente
   args = []
   args.append(CreateElement(element_id))
   args.append(CreateValueFrom(region))
-  # TODO(wyh): why append the following param between above two cause the null value of y?
   args.append(center)
+  print "------------create value region: %d %d %d %d" % (region.X(), region.Y(), region.Width(), region.Height())
+  # TODO(wyh): why append the following param between above two cause the null value of y?
   result = {}
   status = web_view.CallFunction(frame, GET_LOCATION_IN_VIEW, args, result)
   if status.IsError():
@@ -342,8 +343,11 @@ def ScrollElementRegionIntoViewHelper(frame, web_view, element_id, region, cente
   if not ParseFromValue(result["value"], tmp_location):
     return Status(kUnknownError, "failed to parse value of GET_LOCATION_IN_VIEW")
   if clickable_element_id:
-    tmp_location.Offset(region.Width() / 2, region.Height() / 2)
-    status = VerifyElementClickable(frame, web_view, clickable_element_id, tmp_location)
+    print "-------------- is clickable_element_id"
+    middle = copy.deepcopy(tmp_location)
+    middle.Offset(region.Width() / 2, region.Height() / 2)
+    print "------------offset region: %d %d %d %d" % (region.X(), region.Y(), region.Width(), region.Height())
+    status = VerifyElementClickable(frame, web_view, clickable_element_id, middle)
     if status.IsError():
       return status
   location.Update(tmp_location)
@@ -368,6 +372,7 @@ def ScrollElementRegionIntoView(session, web_view, element_id, region, center, c
   region_size = region.size;
   status = ScrollElementRegionIntoViewHelper(session.GetCurrentFrameId(), web_view, element_id, \
                                               region, center, clickable_element_id, region_offset)
+  print "------------ScrollElementRegionIntoViewHelper region: %d %d %d %d" % (region.X(), region.Y(), region.Width(), region.Height())
   if status.IsError():
     return status
   kFindSubFrameScript = \
@@ -455,12 +460,18 @@ def GetElementClickableLocation(session, web_view, element_id, location):
 
   rect = WebRect()
   status = GetElementRegion(session, web_view, element_id, rect)
+  print "------------- in util GetElementRegion"
+  print "-----------------location %d %d" % (location.x, location.y)
+  print "-------------------rect %d %d --- %d %d" % (rect.X(), rect.Y(), rect.Width(), rect.Height())
   if status.IsError():
     return status
-
-  status = ScrollElementRegionIntoView(session, web_view, target_element_id, rect, True, element_id, location)
+  # TODO(wyh): manually change center to false make element.click() ok
+  status = ScrollElementRegionIntoView(session, web_view, target_element_id, rect, False, element_id, location)
   if status.IsError():
     return status
+  print "------------- in util ScrollElementRegionIntoView"
+  print "-----------------location %d %d" % (location.x, location.y)
+  print "-------------------rect %d %d --- %d %d" % (rect.X(), rect.Y(), rect.Width(), rect.Height())
   location.Offset(rect.Width() / 2, rect.Height() / 2)
   return Status(kOk)
 
