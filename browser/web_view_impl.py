@@ -464,7 +464,7 @@ class WebViewImpl(WebView):
     status = self.client.SendCommandAndGetResult("Page.captureScreenshot", {}, result)
     if status.IsError():
       return (status, "")
-    screenshot = result["value"].get("data")
+    screenshot = result.get("data")
     if type(screenshot) != str:
       return (Status(kUnknownError, "expected string 'data' in response"), "")
     return (Status(kOk), screenshot)
