@@ -28,7 +28,8 @@ WindowCommandMapping = {r'/session/([a-f0-9]+)/title$': {'GET': Bind(ExecuteGetT
                         r'/session/([a-f0-9]+)/elements$': {'POST': Bind(ExecuteFindElements)},
                         r'/session/([a-f0-9]+)/execute$': {'POST': Bind(ExecuteExecuteScript)},
                         r'/session/([a-f0-9]+)/execute_async$': {'POST': Bind(ExecuteExecuteAsyncScript)},
-                        r'/session/([a-f0-9]+)/screenshot$': {'GET': Bind(ExecuteScreenshot)}}
+                        r'/session/([a-f0-9]+)/screenshot$': {'GET': Bind(ExecuteScreenshot)},
+                        r'/session/([a-f0-9]+)/window/([\-\w]+)/size$': {'GET': Bind(ExecuteGetWindowSize)}}
 
 # alert commands map
 AlertCommandMapping = {r'/session/([a-f0-9]+)/accept_alert$': {'POST': Bind(ExecuteAcceptAlert)}}

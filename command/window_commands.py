@@ -11,7 +11,8 @@ __all__ = ["ExecuteWindowCommand", \
            "ExecuteFindElements", \
            "ExecuteExecuteScript", \
            "ExecuteExecuteAsyncScript", \
-           "ExecuteScreenshot"]
+           "ExecuteScreenshot", \
+           "ExecuteGetWindowSize"]
 
 from browser.web_view_impl import WebViewImpl
 from browser.status import *
@@ -156,5 +157,22 @@ def ExecuteScreenshot(session, web_view, params, value):
   
   value.clear()
   value.update({"value": screenshot})
+  return Status(kOk)
+
+def ExecuteGetWindowSize(session, web_view, params, value):
+  result = {}
+  kExecuteGetWindowSizeScript = \
+      "function() {"\
+      "var size = {'height':0, 'width':0};"\
+      "size.height = window.screen.availHeight;"\
+      "size.width = window.screen.availWidth;"\
+      "return size}"
+  status = web_view.CallFunction(session.GetCurrentFrameId(), \
+              kExecuteGetWindowSizeScript, [], result)
+  if status.IsError():
+    return status
+
+  value.clear()
+  value.update(result)
   return Status(kOk)
 
