@@ -10,7 +10,8 @@ __all__ = ["ExecuteWindowCommand", \
            "ExecuteFindElement", \
            "ExecuteFindElements", \
            "ExecuteExecuteScript", \
-           "ExecuteExecuteAsyncScript"]
+           "ExecuteExecuteAsyncScript", \
+           "ExecuteScreenshot"]
 
 from browser.web_view_impl import WebViewImpl
 from browser.status import *
@@ -143,4 +144,17 @@ def ExecuteExecuteAsyncScript(session, web_view, params, value):
   if type(args) != list:
     return Status(kUnknownError, "'args' must be a list")
   return web_view.CallUserAsyncFunction(session.GetCurrentFrameId(), "function(){" + script + "}", args, session.script_timeout, value)
+
+def ExecuteScreenshot(session, web_view, params, value):
+  status = session.xwalk.ActivateWebView(web_view.GetId())
+  if status.IsError():
+    print "The Crosswalk WebView Activate Status is %s" % status.Message()
+
+  (status, screenshot) = web_view.CaptureScreenshot()
+  if status.IsError():
+    return status
+  
+  value.clear()
+  value.update({"value": screenshot})
+  return Status(kOk)
 
