@@ -15,7 +15,9 @@ SessionCommandMapping = {r'/status$': {'GET': Bind(ExecuteGetStatus)},
                          r'/session/([a-f0-9]+)/timeouts/async_script$': {'POST': Bind(ExecuteSetScriptTimeout)},
                          r'/session/([a-f0-9]+)/window_handle$': {'GET': Bind(ExecuteGetCurrentWindowHandle)},
                          r'/session/([a-f0-9]+)/is_loading$': {'GET': Bind(ExecuteIsLoading)},
-                         r'/session/([a-f0-9]+)/orientation$': {'GET': Bind(ExecuteGetBrowserOrientation)}}
+                         r'/session/([a-f0-9]+)/orientation$': {'GET': Bind(ExecuteGetBrowserOrientation)},
+                         r'/session/([a-f0-9]+)/location$': {'GET': Bind(ExecuteGetLocation)},
+                         r'/session/([a-f0-9]+)/application_cache/status$': {'GET': Bind(ExecuteGetAppCacheStatus)}}
 
 # window commands map
 WindowCommandMapping = {r'/session/([a-f0-9]+)/title$': {'GET': Bind(ExecuteGetTitle)},

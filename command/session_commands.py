@@ -4,7 +4,9 @@ __all__ = ["ExecuteGetSessionCapabilities", \
            "ExecuteSetScriptTimeout", \
            "ExecuteGetCurrentWindowHandle", \
            "ExecuteIsLoading", \
-           "ExecuteGetBrowserOrientation"]
+           "ExecuteGetBrowserOrientation", \
+           "ExecuteGetLocation", \
+           "ExecuteGetAppCacheStatus"]
 
 from browser.status import *
 from browser.web_view_impl import WebViewImpl
@@ -131,7 +133,39 @@ def ExecuteGetBrowserOrientation(session, params, value):
   value.update({"value": orientation})
   return Status(kOk)
 
+def ExecuteGetLocation(session, params, value):
+  if not session.overridden_geoposition:
+    return Status(kUnknownError, "Location must be set before it can be retrieved")
+  location = {}
+  location["latitude"] = session.overridden_geoposition.latitude
+  location["longitude"] = session.overridden_geoposition.longitude
+  location["accuracy"] = session.overridden_geoposition.accuracy
+  # Set a dummy altitude to make WebDriver clients happy.
+  # https://code.google.com/p/chromedriver/issues/detail?id=281
+  location["altitude"] = 0.0
+  value.clear()
+  value.update(location)
+  return Status(kOk)
 
+def ExecuteGetAppCacheStatus(session, params, value):
+  web_view = WebViewImpl("fake", 0, None)
+  status = session.GetTargetWindow(web_view)
+  if status.IsError():
+    return status
+
+  status = web_view.ConnectIfNecessary()
+  if status.IsError():
+    return status
+
+  kGetAppCacheStatus = "function() { return window.applicationCache.status;}"
+  result = {}
+  status = web_view.CallFunction(session.GetCurrentFrameId(), kGetAppCacheStatus, [], result)
+  if status.IsError():
+    return status
+  cache_status = result["value"]
+  if type(cache_status) != int:
+    return status(kUnknownError, "Failed acquire current application cache status")
   
-
-
+  value.clear()
+  value.update({"value": cache_status})
+  return Status(kOk)
