@@ -12,7 +12,8 @@ __all__ = ["ExecuteWindowCommand", \
            "ExecuteExecuteScript", \
            "ExecuteExecuteAsyncScript", \
            "ExecuteScreenshot", \
-           "ExecuteGetWindowSize"]
+           "ExecuteGetWindowSize", \
+           "ExecuteGetWindowPosition"]
 
 from browser.web_view_impl import WebViewImpl
 from browser.status import *
@@ -163,12 +164,31 @@ def ExecuteGetWindowSize(session, web_view, params, value):
   result = {}
   kExecuteGetWindowSizeScript = \
       "function() {"\
-      "var size = {'height':0, 'width':0};"\
-      "size.height = window.screen.availHeight;"\
-      "size.width = window.screen.availWidth;"\
-      "return size}"
+      "  var size = {'height': 0, 'width': 0};"\
+      "  size.height = window.screen.height;"\
+      "  size.width = window.screen.width;"\
+      "  return size;"\
+      "}"
   status = web_view.CallFunction(session.GetCurrentFrameId(), \
-              kExecuteGetWindowSizeScript, [], result)
+               kExecuteGetWindowSizeScript, [], result)
+  if status.IsError():
+    return status
+
+  value.clear()
+  value.update(result)
+  return Status(kOk)
+
+def ExecuteGetWindowPosition(session, web_view, params, value):
+  result = {}
+  kGetWindowPositionScript = \
+      "function() {"\
+      "  var position = {'x': 0, 'y': 0};"\
+      "  position.x = window.screenX;"\
+      "  position.y = window.screenY;"\
+      "  return position;"\
+      "}"
+  status = web_view.CallFunction(session.GetCurrentFrameId(), \
+               kGetWindowPositionScript, [], result);
   if status.IsError():
     return status
 
