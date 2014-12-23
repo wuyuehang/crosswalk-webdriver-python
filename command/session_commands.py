@@ -2,7 +2,9 @@ __all__ = ["ExecuteGetSessionCapabilities", \
            "ExecuteImplicitlyWait", \
            "ExecuteSetTimeout", \
            "ExecuteSetScriptTimeout", \
-           "ExecuteGetCurrentWindowHandle"]
+           "ExecuteGetCurrentWindowHandle", \
+           "ExecuteIsLoading", \
+           "ExecuteGetBrowserOrientation"]
 
 from browser.status import *
 from browser.web_view_impl import WebViewImpl
@@ -87,4 +89,49 @@ def ExecuteGetCurrentWindowHandle(session, params, value):
   value.clear()
   value.update({"value": _WebViewIdToWindowHandle(session.window)})
   return Status(kOk)
+
+def ExecuteIsLoading(session, params, value):
+  web_view = WebViewImpl("fake", 0, None)
+  status = session.GetTargetWindow(web_view)
+  if status.IsError():
+    return status
+
+  status = web_view.ConnectIfNecessary()
+  if status.IsError():
+    return status
+
+  is_pending = False
+  (status, is_pending) = web_view.IsPendingNavigation(session.GetCurrentFrameId())
+  if status.IsError():
+    return status
+  value.clear()
+  value.update({"value": is_pending})
+  return Status(kOk)
+
+def ExecuteGetBrowserOrientation(session, params, value):
+  web_view = WebViewImpl("fake", 0, None)
+  status = session.GetTargetWindow(web_view)
+  if status.IsError():
+    return status
+
+  status = web_view.ConnectIfNecessary()
+  if status.IsError():
+    return status
+
+  kGetBrowserOrientationScript = "function() { return window.screen.orientation;}"
+  result = {}
+  status = web_view.CallFunction(session.GetCurrentFrameId(), kGetBrowserOrientationScript, [], result)
+  if status.IsError():
+    return status
+  orientation = result["value"].get("type")
+  if type(orientation) != str:
+    return status(kUnknownError, "Failed acquire current browser's orientation")
+  
+  value.clear()
+  value.update({"value": orientation})
+  return Status(kOk)
+
+
+  
+
 
