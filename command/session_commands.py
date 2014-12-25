@@ -6,7 +6,8 @@ __all__ = ["ExecuteGetSessionCapabilities", \
            "ExecuteIsLoading", \
            "ExecuteGetBrowserOrientation", \
            "ExecuteGetLocation", \
-           "ExecuteGetAppCacheStatus"]
+           "ExecuteGetAppCacheStatus", \
+           "ExecuteGetWindowHandles"]
 
 from browser.status import *
 from browser.web_view_impl import WebViewImpl
@@ -168,5 +169,18 @@ def ExecuteGetAppCacheStatus(session, params, value):
   
   value.clear()
   value.update({"value": cache_status})
+  return Status(kOk)
+
+def ExecuteGetWindowHandles(session, params, value):
+  web_view_ids = []
+  status = session.xwalk.GetWebViewIds(web_view_ids)
+  if status.IsError():
+    return status
+  window_ids = []
+  for it in web_view_ids:
+    window_ids.append(_WebViewIdToWindowHandle(it))
+
+  value.clear()
+  value.update({"value": window_ids})
   return Status(kOk)
 
