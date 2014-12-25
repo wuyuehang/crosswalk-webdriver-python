@@ -13,12 +13,70 @@ __all__ = ["ExecuteWindowCommand", \
            "ExecuteExecuteAsyncScript", \
            "ExecuteScreenshot", \
            "ExecuteGetWindowSize", \
-           "ExecuteGetWindowPosition"]
+           "ExecuteGetWindowPosition", \
+           "ExecuteGetCookies"]
 
 from browser.web_view_impl import WebViewImpl
 from browser.status import *
 from base.log import VLOG
 from command.element_util import FindElement
+
+class Cookie(object):
+  
+  def __init__(self, name, value, domain, path, expiry, secure, session):
+    self.name = name
+    self.value = value
+    self.domain = domain
+    self.path = path
+    self.expiry = expiry
+    self.secure = secure
+    self.session = session
+
+  def Update(self, other):
+    self.name = other.name
+    self.value = other.value
+    self.domain = other.domain
+    self.path = other.path
+    self.expiry = other.expiry
+    self.secure = other.secure
+    self.session = other.session
+
+def _CreateDictionaryFrom(cookie):
+  dictionary = {}
+  dictionary["name"] = cookie.name
+  dictionary["value"] = cookie.value
+  if cookie.domain:
+    dictionary["domain"] = cookie.domain
+  if cookie.path:
+    dictionary["path"] = cookie.path
+  if not cookie.session:
+    dictionary["expiry"] = cookie.expiry
+  dictionary["secure"] = cookie.secure
+  return dictionary
+
+def _GetVisibleCookies(web_view, cookies):
+  internal_cookies = []
+  status = web_view.GetCookies(internal_cookies)
+  if status.IsError():
+    return status
+
+  cookies_tmp = []
+  for cookie_dict in internal_cookies:
+    if type(cookie_dict) != dict:
+      return Status(kUnknownError, "DevTools returns a non-dictionary cookie")
+    name = cookie_dict.get("name", "")
+    value = cookie_dict.get("value", "")
+    domain = cookie_dict.get("domain", "")
+    path = cookie_dict.get("path", "")
+    expiry = cookie_dict.get("expires", 0)
+    # Convert from millisecond to second.
+    expiry = expiry / 1000.0  
+    session = cookie_dict.get("session", False)
+    secure = cookie_dict.get("secure", False)
+    cookies_tmp.append(Cookie(name, value, domain, path, expiry, secure, session))
+ 
+  cookies[:] = cookies_tmp
+  return Status(kOk)
 
 # return status and url<string>
 def _GetUrl(web_view, frame):
@@ -194,5 +252,18 @@ def ExecuteGetWindowPosition(session, web_view, params, value):
 
   value.clear()
   value.update(result)
+  return Status(kOk)
+
+def ExecuteGetCookies(session, web_view, params, value):
+  cookies = []
+  status = _GetVisibleCookies(web_view, cookies)
+  if status.IsError():
+    return status
+  cookie_list = []
+  for it in cookies:
+    cookie_list.append(it)
+
+  value.clear()
+  value.update({"value": cookie_list})
   return Status(kOk)
 
