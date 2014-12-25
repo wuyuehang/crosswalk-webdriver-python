@@ -7,7 +7,8 @@ __all__ = ["ExecuteGetSessionCapabilities", \
            "ExecuteGetBrowserOrientation", \
            "ExecuteGetLocation", \
            "ExecuteGetAppCacheStatus", \
-           "ExecuteGetWindowHandles"]
+           "ExecuteGetWindowHandles", \
+           "ExecuteClose"]
 
 from browser.status import *
 from browser.web_view_impl import WebViewImpl
@@ -17,6 +18,12 @@ kWindowHandlePrefix = "CDwindow-"
 
 def _WebViewIdToWindowHandle(web_view_id):
   return kWindowHandlePrefix + web_view_id
+
+# return bool and web_view_id<string>
+def _WindowHandleToWebViewId(window_handle):
+  if kWindowHandlePrefix in window_handle:
+    return (True, window_handle[len(kWindowHandlePrefix):])
+  return False
 
 def ExecuteSessionCommand(command, session, params, value):
   command.Update([session, params, value])
@@ -183,4 +190,31 @@ def ExecuteGetWindowHandles(session, params, value):
   value.clear()
   value.update({"value": window_ids})
   return Status(kOk)
+
+def ExecuteClose(session, params, value):
+  web_view_ids = []
+  status = session.xwalk.GetWebViewIds(web_view_ids)
+  if status.IsError():
+    return status
+  is_last_web_view = (len(web_view_ids) == 1)
+  web_view_ids = []
+
+  web_view = WebViewImpl("fake", 0, None)
+  status = session.GetTargetWindow(web_view)
+  if status.IsError():
+    return status
+
+  status = session.xwalk.CloseWebView(web_view.GetId())
+  if status.IsError():
+    return status
+
+  status = session.xwalk.GetWebViewIds(web_view_ids)
+
+  if ((status.Code() == kXwalkNotReachable and is_last_web_view) or \
+    (status.IsOk() and len(web_view_ids) == 1)):
+    # when the last web_view_id is "WebViewImpl("fake", 0, None)"
+    # If no window is open, close is the equivalent of calling "quit".
+    session.quit = True;
+    return session.xwalk.Quit()
+  return status;
 
