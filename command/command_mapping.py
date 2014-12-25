@@ -35,7 +35,8 @@ WindowCommandMapping = {r'/session/([a-f0-9]+)/title$': {'GET': Bind(ExecuteGetT
                         r'/session/([a-f0-9]+)/screenshot$': {'GET': Bind(ExecuteScreenshot)},
                         r'/session/([a-f0-9]+)/window/([\-\w]+)/size$': {'GET': Bind(ExecuteGetWindowSize)},
                         r'/session/([a-f0-9]+)/window/([\-\w]+)/position$': {'GET': Bind(ExecuteGetWindowPosition)},
-                        r'/session/([a-f0-9]+)/cookie$': {'GET': Bind(ExecuteGetCookies)}}
+                        r'/session/([a-f0-9]+)/cookie$': {'GET': Bind(ExecuteGetCookies),
+                                                          'POST': Bind(ExecuteAddCookie)}}
 
 # alert commands map
 AlertCommandMapping = {r'/session/([a-f0-9]+)/accept_alert$': {'POST': Bind(ExecuteAcceptAlert)}}

@@ -14,10 +14,12 @@ __all__ = ["ExecuteWindowCommand", \
            "ExecuteScreenshot", \
            "ExecuteGetWindowSize", \
            "ExecuteGetWindowPosition", \
-           "ExecuteGetCookies"]
+           "ExecuteGetCookies", \
+           "ExecuteAddCookie"]
 
-from browser.web_view_impl import WebViewImpl
 from browser.status import *
+from browser.js import *
+from browser.web_view_impl import WebViewImpl
 from base.log import VLOG
 from command.element_util import FindElement
 
@@ -261,9 +263,18 @@ def ExecuteGetCookies(session, web_view, params, value):
     return status
   cookie_list = []
   for it in cookies:
-    cookie_list.append(it)
+    cookie_list.append(_CreateDictionaryFrom(it))
 
-  value.clear()
   value.update({"value": cookie_list})
   return Status(kOk)
+
+def ExecuteAddCookie(session, web_view, params, value):
+  cookie = params.get("cookie")
+  if type(cookie) != dict:
+    return Status(kUnknownError, "missing 'cookie'")
+  args = []
+  args.append(cookie)
+  
+  status = web_view.CallFunction(session.GetCurrentFrameId(), kAddCookieScript, args, {})
+  return status
 
