@@ -40,7 +40,8 @@ WindowCommandMapping = {r'/session/([a-f0-9]+)/title$': {'GET': Bind(ExecuteGetT
                         r'/session/([a-f0-9]+)/cookie$': {'GET': Bind(ExecuteGetCookies),
                                                           'POST': Bind(ExecuteAddCookie),
                                                           'DELETE': Bind(ExecuteDeleteAllCookies)},
-                        r'/session/([a-f0-9]+)/cookie/([\S]+)$': {'DELETE': Bind(ExecuteDeleteCookie)}}
+                        r'/session/([a-f0-9]+)/cookie/([\S]+)$': {'DELETE': Bind(ExecuteDeleteCookie)},
+                        r'/session/([a-f0-9]+)/frame$': {'POST': Bind(ExecuteSwitchToFrame)}}
 
 # alert commands map
 AlertCommandMapping = {r'/session/([a-f0-9]+)/accept_alert$': {'POST': Bind(ExecuteAcceptAlert)}}

@@ -17,13 +17,15 @@ __all__ = ["ExecuteWindowCommand", \
            "ExecuteGetCookies", \
            "ExecuteAddCookie", \
            "ExecuteDeleteCookie", \
-           "ExecuteDeleteAllCookies"]
+           "ExecuteDeleteAllCookies", \
+           "ExecuteSwitchToFrame"]
 
 from browser.status import *
 from browser.js import *
 from browser.web_view_impl import WebViewImpl
 from base.log import VLOG
 from command.element_util import FindElement
+from command.init_session_commands import GenerateId
 
 class Cookie(object):
   
@@ -305,5 +307,62 @@ def ExecuteDeleteAllCookies(session, web_view, params, value):
       status = web_view.DeleteCookie(it.name, url)
       if status.IsError():
         return status
+  return Status(kOk)
+
+def ExecuteSwitchToFrame(session, web_view, params, value):
+  if not params.has_key("id"):
+    return Status(kUnknownError, "missing 'id'")
+
+  id_value = params["id"]
+  if id_value == None:
+    session.SwitchToTopFrame()
+    return Status(kOk)
+
+  script = ""
+  args = []
+  if type(id_value) == dict:
+    script = "function(elem) { return elem; }"
+    args.append(id_value)
+  else:
+    script = \
+        "function(xpath) {"\
+        "  return document.evaluate(xpath, document, null, "\
+        "      XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;"\
+        "}"
+    xpath = "(/html/body//iframe|/html/frameset/frame)"
+    if type(id_value) == str:
+      xpath += '[@name="%s" or @id="%s"]' % (id_value, id_value)
+    elif type(id_value) == int:
+      xpath += "[%d]" % (id_value + 1)
+    else:
+      return Status(kUnknownError, "invalid 'id'")
+    args.append(xpath)
+
+
+  (status, frame) = web_view.GetFrameByFunction(session.GetCurrentFrameId(), script, args)
+  if status.IsError():
+    return status
+
+  result = {}
+  status = web_view.CallFunction(session.GetCurrentFrameId(), script, args, result)
+  if status.IsError():
+    return status
+
+  if type(result) != dict:
+    return Status(kUnknownError, "fail to locate the sub frame element")
+
+  xwalk_driver_id = GenerateId()
+  kSetFrameIdentifier = \
+      "function(frame, id) {"\
+      "  frame.setAttribute('cd_frame_id_', id);"\
+      "}"
+  new_args = []
+  new_args.append(result)
+  new_args.append(xwalk_driver_id);
+  result = {}
+  status = web_view.CallFunction(session.GetCurrentFrameId(), kSetFrameIdentifier, new_args, result)
+  if status.IsError():
+    return status
+  session.SwitchToSubFrame(frame, xwalk_driver_id)
   return Status(kOk)
 
