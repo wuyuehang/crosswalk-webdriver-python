@@ -15,7 +15,9 @@ __all__ = ["ExecuteWindowCommand", \
            "ExecuteGetWindowSize", \
            "ExecuteGetWindowPosition", \
            "ExecuteGetCookies", \
-           "ExecuteAddCookie"]
+           "ExecuteAddCookie", \
+           "ExecuteDeleteCookie", \
+           "ExecuteDeleteAllCookies"]
 
 from browser.status import *
 from browser.js import *
@@ -89,7 +91,7 @@ def _GetUrl(web_view, frame):
     return (status, "")
   if type(value["value"]) != str:
     return (Status(kUnknownError, "javascript failed to return the url"), "")
-  return (Status(kOk), value)
+  return (Status(kOk), value["value"])
 
 def ExecuteWindowCommand(command, session, params, value):
   web_view = WebViewImpl("fake_id", 0, None)
@@ -265,6 +267,7 @@ def ExecuteGetCookies(session, web_view, params, value):
   for it in cookies:
     cookie_list.append(_CreateDictionaryFrom(it))
 
+  value.clear()
   value.update({"value": cookie_list})
   return Status(kOk)
 
@@ -277,4 +280,30 @@ def ExecuteAddCookie(session, web_view, params, value):
   
   status = web_view.CallFunction(session.GetCurrentFrameId(), kAddCookieScript, args, {})
   return status
+
+def ExecuteDeleteCookie(session, web_view, params, value):
+  name = params.get("name")
+  if type(name) != str:
+    return Status(kUnknownError, "missing 'name'")
+  (status, url) = _GetUrl(web_view, session.GetCurrentFrameId())
+  if status.IsError():
+    return status
+
+  return web_view.DeleteCookie(name, url)
+  
+def ExecuteDeleteAllCookies(session, web_view, params, value):
+  cookies = []
+  status = _GetVisibleCookies(web_view, cookies)
+  if status.IsError():
+    return status
+
+  if cookies:
+    (status, url) = _GetUrl(web_view, session.GetCurrentFrameId())
+    if status.IsError():
+      return status
+    for it in cookies:
+      status = web_view.DeleteCookie(it.name, url)
+      if status.IsError():
+        return status
+  return Status(kOk)
 
