@@ -19,7 +19,8 @@ SessionCommandMapping = {r'/status$': {'GET': Bind(ExecuteGetStatus)},
                          r'/session/([a-f0-9]+)/orientation$': {'GET': Bind(ExecuteGetBrowserOrientation)},
                          r'/session/([a-f0-9]+)/location$': {'GET': Bind(ExecuteGetLocation)},
                          r'/session/([a-f0-9]+)/application_cache/status$': {'GET': Bind(ExecuteGetAppCacheStatus)},
-                         r'/session/([a-f0-9]+)/window$': {'DELETE': Bind(ExecuteClose)}}
+                         r'/session/([a-f0-9]+)/window$': {'DELETE': Bind(ExecuteClose),
+                                                           'POST': Bind(ExecuteSwitchToWindow)}}
 
 # window commands map
 WindowCommandMapping = {r'/session/([a-f0-9]+)/title$': {'GET': Bind(ExecuteGetTitle)},

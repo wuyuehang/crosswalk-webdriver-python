@@ -8,11 +8,13 @@ __all__ = ["ExecuteGetSessionCapabilities", \
            "ExecuteGetLocation", \
            "ExecuteGetAppCacheStatus", \
            "ExecuteGetWindowHandles", \
-           "ExecuteClose"]
+           "ExecuteClose", \
+           "ExecuteSwitchToWindow"]
 
 from browser.status import *
 from browser.web_view_impl import WebViewImpl
 from base.log import VLOG
+from misc.basic_types import WebPoint
 
 kWindowHandlePrefix = "CDwindow-"
 
@@ -23,7 +25,7 @@ def _WebViewIdToWindowHandle(web_view_id):
 def _WindowHandleToWebViewId(window_handle):
   if kWindowHandlePrefix in window_handle:
     return (True, window_handle[len(kWindowHandlePrefix):])
-  return False
+  return (False, "")
 
 def ExecuteSessionCommand(command, session, params, value):
   command.Update([session, params, value])
@@ -217,4 +219,64 @@ def ExecuteClose(session, params, value):
     session.quit = True;
     return session.xwalk.Quit()
   return status;
+
+def ExecuteSwitchToWindow(session, params, value):
+  name = params.get("name")
+  if type(name) != str:
+    return Status(kUnknownError, "'name' must be a nonempty string")
+
+  web_view_ids = []
+  status = session.xwalk.GetWebViewIds(web_view_ids)
+  if status.IsError():
+    return status
+
+  web_view_id = ""
+  found = False
+  (flag, web_view_id) = _WindowHandleToWebViewId(name)
+  if flag and web_view_id in web_view_ids:
+    # Check if any web_view matches |web_view_id|.
+      found = True
+  else:
+    # Check if any of the tab window names match |name|.
+    kGetWindowNameScript = "function() { return window.name; }"
+    for it in web_view_ids:
+      result = {}
+      web_view = WebViewImpl("fake", 0, None)
+      status = session.xwalk.GetWebViewById(it, web_view)
+      if status.IsError():
+        return status
+      status = web_view.ConnectIfNecessary()
+      if status.IsError():
+        return status
+      status = web_view.CallFunction("", kGetWindowNameScript, [], result)
+      if status.IsError():
+        return status
+      window_name = result["value"]
+      if type(window_name) != str:
+        return Status(kUnknownError, "failed to get window name")
+      if window_name == name:
+        web_view_id = it
+        found = True
+        break
+
+  if not found:
+    return Status(kNoSuchWindow)
+
+  if session.overridden_geoposition:
+    web_view = WebViewImpl("fake", 0, None)
+    status = session.xwalk.GetWebViewById(web_view_id, web_view)
+    if status.IsError():
+      return status
+    status = web_view.ConnectIfNecessary()
+    if status.IsError():
+      return status
+    status = web_view.OverrideGeolocation(session.overridden_geoposition)
+    if status.IsError():
+      return status
+
+  session.window = web_view_id
+  session.SwitchToTopFrame()
+  session.mouse_position = WebPoint(0, 0)
+  return Status(kOk)
+
 
