@@ -13,9 +13,7 @@ from command.init_session_commands import *
 from command.window_commands import ExecuteWindowCommand
 from command.session_commands import ExecuteSessionCommand
 from command.element_commands import ExecuteElementCommand
-from command.command_mapping import SessionCommandMapping
-from command.command_mapping import WindowCommandMapping
-from command.command_mapping import ElementCommandMapping
+from command.command_mapping import *
 from misc.session import Session
 from base.bind import Bind
 from base.log import VLOG
