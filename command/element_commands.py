@@ -15,15 +15,18 @@ __all__ = ["ExecuteElementCommand", \
            "ExecuteElementEquals", \
            "ExecuteSubmitElement", \
            "ExecuteGetElementLocationOnceScrolledIntoView", 
-           "ExecuteClickElement"]
+           "ExecuteClickElement", \
+           "ExecuteSendKeysToElement"]
 
 import time
 from element_util import *
+from browser.js import *
 from browser.status import *
 from browser.web_view_impl import WebViewImpl
 from browser.ui_events import *
 from third_party.atoms import *
 from misc.basic_types import WebPoint
+from misc.util import SendKeysOnWindow
 
 def ExecuteElementCommand(command, element_id, session, params, value):
   web_view = WebViewImpl("fake_id", 0, None)
@@ -213,13 +216,12 @@ def ExecuteClickElement(session, web_view, element_id, params, value):
     return status
 
 ####### remain test api #####################
-"""
 def SendKeysToElement(session, web_view, element_id, key_list):
   is_displayed = False
   is_focused = False
   start_time = time.time()
   while True:
-    (is_displayed, status) = IsElementDisplayed(session, web_view, element_id, True)
+    (status, is_displayed) = IsElementDisplayed(session, web_view, element_id, True)
     if status.IsError():
       return status
     if is_displayed:
@@ -229,7 +231,7 @@ def SendKeysToElement(session, web_view, element_id, key_list):
       return status
     if is_focused:
       break
-    if ((time.time() - start_time) >= session.implicit_wait)
+    if ((time.time() - start_time) >= session.implicit_wait):
       return Status(kElementNotVisible);
     time.sleep(0.1)
 
@@ -248,7 +250,7 @@ def SendKeysToElement(session, web_view, element_id, key_list):
     if status.IsError():
       return status
 
-  (status, session.sticky_modifiers) = SendKeysOnWindow(web_view, key_list, True)
+  (status, session.sticky_modifiers) = SendKeysOnWindow(web_view, key_list, True, session.sticky_modifiers)
   return status
 
 def ExecuteHoverOverElement(session, web_view, element_id, params, value):
@@ -314,7 +316,7 @@ def ExecuteSendKeysToElement(session, web_view, element_id, params, value):
       return Status(kUnknownError, "the element can not hold multiple files")
 
     element = CreateElement(element_id)
-    return web_view.SetFileInputFiles(session->GetCurrentFrameId(), element, paths)
+    return web_view.SetFileInputFiles(session.GetCurrentFrameId(), element, paths)
   else:
     return SendKeysToElement(session, web_view, element_id, key_list)
 

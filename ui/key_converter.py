@@ -111,7 +111,7 @@ def IsModifierKey(key):
 # Returns whether |key| is a special WebDriver key. If true, |key_code| will
 # be set.
 # return bool and key_code<int>
-def KeyCodeFromSpecialWebDriverKey(key) {
+def KeyCodeFromSpecialWebDriverKey(key):
   # base::char16
   index = ord(key) - 0xE000
   is_special_key = (index >= 0 and index < len(kSpecialWebDriverKeys))
@@ -130,13 +130,13 @@ def KeyCodeFromShorthandKey(key_utf16):
   client_should_skip = False;
   if (key_utf16 == '\n'):
     key_code = VKEY_RETURN
-  elif (key == '\t'):
+  elif (key_utf16 == '\t'):
     key_code = VKEY_TAB
-  elif (key == '\b'):
+  elif (key_utf16 == '\b'):
     key_code = VKEY_BACK
-  elif (key == ' '):
+  elif (key_utf16 == ' '):
     key_code = VKEY_SPACE
-  elif (key == '\r'):
+  elif (key_utf16 == '\r'):
     key_code = VKEY_UNKNOWN
     should_skip = True
   else:
@@ -160,7 +160,7 @@ def CreateCharEvent(unmodified_text, modified_text, modifiers):
 # depressed. |modifiers| acts both an input and an output, however, only when 
 # the conversion process is successful will |modifiers| be changed.           
 # return status and modifiers<int>
-def ConvertKeysToKeyEvents(client_keys, release_modifiers, modifiers, client_key_events)
+def ConvertKeysToKeyEvents(client_keys, release_modifiers, modifiers, client_key_events):
   key_events = []
   keys = client_keys
   # Add an implicit NULL character to the end of the input to depress all
@@ -263,7 +263,7 @@ def ConvertKeysToKeyEvents(client_keys, release_modifiers, modifiers, client_key
         modified_text = key
 
     # Create the key events.
-    necessary_modifiers = []
+    necessary_modifiers = [0, 0, 0]
     for i in range(3):
       necessary_modifiers[i] = (all_modifiers & kModifiers[i].mask) and \
           not (sticky_modifiers & kModifiers[i].mask)
@@ -276,7 +276,7 @@ def ConvertKeysToKeyEvents(client_keys, release_modifiers, modifiers, client_key
 
     key_events.append(CreateKeyUpEvent(key_code, all_modifiers))
 
-    for i in range(2, -1, -1)
+    for i in range(2, -1, -1):
       if necessary_modifiers[i]:
         key_events.append(CreateKeyUpEvent(kModifiers[i].key_code, sticky_modifiers))
 
