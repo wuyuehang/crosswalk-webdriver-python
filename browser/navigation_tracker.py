@@ -105,7 +105,6 @@ class NavigationTracker(DevToolsEventListener):
     return Status(kOk)
 
   def OnCommandSuccess(self, client, method):
-    print ">>>>>>>>method of cmd success: %s, state of tracker: %d" % (method, self.loading_state) 
     if method == "Page.navigate" and self.loading_state != NavigationTracker.kLoading:
       # At this point the browser has initiated the navigation, but besides that,
       # it is unknown what will happen.
@@ -137,7 +136,6 @@ class NavigationTracker(DevToolsEventListener):
       status = self.client.SendCommandAndGetResult("Runtime.evaluate", params, result)
       url = result["result"].get("value", None)
       if status.IsError() or type(url) != str:
-        print ">>>>>>>>>>>>it is here"
         return Status(kUnknownError, "cannot determine loading status", status)
       if self.loading_state == NavigationTracker.kUnknown and not url:
         self.loading_state = NavigationTracker.kLoading

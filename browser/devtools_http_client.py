@@ -192,7 +192,7 @@ class DevToolsHttpClient(object):
     return Status(kUnknownError, "failed to close window in 20 seconds")
 
   def ActivateWebView(self, sid):
-    re ,data = self.FetchUrlAndLog(self.server_url + "/json/activate/" + sid)
+    re, data = self.FetchUrlAndLog(self.server_url + "/json/activate/" + sid)
     if not re:
       return Status(kUnknownError, "cannot activate web view")
     return Status(kOk)

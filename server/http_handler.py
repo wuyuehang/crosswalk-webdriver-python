@@ -42,7 +42,7 @@ class XwalkHttpHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
   def PrepareResponse(self, trimmed_path, status, value, session_id):
     response = self.PrepareResponseHelper(trimmed_path, status, value, session_id)
-    VLOG(0, "SendTo Selenium: " + str(response))
+    # VLOG(0, "SendTo Selenium: " + str(response))
     self.send_response(response["code"])
     for header_item in response["headers"]:
       self.send_header(header_item[0], header_item[1])

@@ -57,12 +57,9 @@ def ExecuteElementCommand(command, element_id, session, params, value):
     nav_status = web_view.WaitForPendingNavigations(session.GetCurrentFrameId(), session.page_load_timeout, True)
     if nav_status.IsError():
       return nav_status
-    print "before cmd run status %s" % nav_status.Message()
     command.Update([session, web_view, element_id, params, value])
     status = command.Run()
-  print "after 1st WaitForPendingNavigations status %s" % nav_status.Message()
   nav_status = web_view.WaitForPendingNavigations(session.GetCurrentFrameId(), session.page_load_timeout, True)
-  print "after 2nd WaitForPendingNavigations status %s" % nav_status.Message()
 
   if status.IsOk() and nav_status.IsError() and nav_status.Code() != kUnexpectedAlertOpen:
     return nav_status
@@ -182,10 +179,8 @@ def ExecuteClickElement(session, web_view, element_id, params, value):
   (status, tag_name) = GetElementTagName(session, web_view, element_id)
   if status.IsError():
     return status
-  print "------------------tagname: " + tag_name
   if tag_name == "option":
     (status, is_toggleable) = IsOptionElementTogglable(session, web_view, element_id)
-    print "---- is_toggleable %s" % str(is_toggleable)
     if status.IsError():
       return status
     if is_toggleable:
@@ -195,9 +190,6 @@ def ExecuteClickElement(session, web_view, element_id, params, value):
   else:
     location = WebPoint()
     status = GetElementClickableLocation(session, web_view, element_id, location)
-    print "------------- GetElementClickableLocation %s" % status.Message()
-    print "----------location %d %d" % (location.x, location.y)
-    print "----------session.sticky_modifiers %d" % session.sticky_modifiers
     if status.IsError():
       return status
     
@@ -210,7 +202,6 @@ def ExecuteClickElement(session, web_view, element_id, params, value):
                    location.x, location.y, session.sticky_modifiers, 1))
 
     status = web_view.DispatchMouseEvents(events, session.GetCurrentFrameId())
-    print "------------DispatchMouseEvents %s" % status.Message()
     if status.IsOk():
       session.mouse_position.Update(location)
     return status

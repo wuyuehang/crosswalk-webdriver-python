@@ -124,12 +124,9 @@ def ExecuteWindowCommand(command, session, params, value):
     nav_status = web_view.WaitForPendingNavigations(session.GetCurrentFrameId(), session.page_load_timeout, True)
     if nav_status.IsError():
       return nav_status
-    print "before cmd run status %s" % nav_status.Message()
     command.Update([session, web_view, params, value])
     status = command.Run()
-  print "after 1st WaitForPendingNavigations status %s" % nav_status.Message()
   nav_status = web_view.WaitForPendingNavigations(session.GetCurrentFrameId(), session.page_load_timeout, True)
-  print "after 2nd WaitForPendingNavigations status %s" % nav_status.Message()
 
   if status.IsOk() and nav_status.IsError() and nav_status.Code() != kUnexpectedAlertOpen:
     return nav_status
@@ -213,8 +210,6 @@ def ExecuteExecuteAsyncScript(session, web_view, params, value):
 
 def ExecuteScreenshot(session, web_view, params, value):
   status = session.xwalk.ActivateWebView(web_view.GetId())
-  if status.IsError():
-    print "The Crosswalk WebView Activate Status is %s" % status.Message()
 
   (status, screenshot) = web_view.CaptureScreenshot()
   if status.IsError():

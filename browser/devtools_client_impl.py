@@ -230,7 +230,6 @@ class DevToolsClientImpl(DevToolsClient):
     self.next_id += 1
     command = {'id': command_id, 'method': method, 'params': params}
     message = json.dumps(command)
-    print "sending to dev server %s" % message
     try:
       self.socket.send(message)
     except WebSocketConnectionClosedException:
@@ -260,7 +259,6 @@ class DevToolsClientImpl(DevToolsClient):
     return Status(kOk)
 
   def _ProcessNextMessage(self, expected_id, timeout):
-    print ">>>>>>>>>>> expected_id: %d" % expected_id
     _ScopedIncrementer(self.stack_count)
     status = self._EnsureListenersNotifiedOfConnect()
     if status.IsError():
@@ -291,7 +289,7 @@ class DevToolsClientImpl(DevToolsClient):
       err = "unknown reason of socket receiving failure"
       VLOG(3, err)
       return Status(kDisconnected, err)
-    VLOG(0, "string from recv buffer of websocket: %s" % message)
+    # VLOG(0, "string from recv buffer of websocket: %s" % message)
     message_type = InspectorMessageType()
     event = InspectorEvent()
     response = InspectorCommandResponse()
