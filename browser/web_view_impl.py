@@ -30,20 +30,28 @@ def _GetContextIdForFrame(tracker, frame):
     return status, 0
   return Status(kOk), context_id
 
-def _GetAsString(typer):
+def _GetMouseEventAsString(typer):
   if typer == kPressedMouseEventType:
     return "mousePressed"
   elif typer == kReleasedMouseEventType:
     return "mouseReleased"
   elif typer == kMovedMouseEventType:
     return "mouseMoved"
-  elif typer == kTouchStart:
+  else:
+    return ""
+
+def _GetTouchEventAsString(typer):
+  if typer == kTouchStart:
     return "touchStart"
   elif typer == kTouchEnd:
     return "touchEnd"
   elif typer == kTouchMove:
     return "touchMove"
-  elif typer == kLeftMouseButton:
+  else:
+    return ""
+
+def _GetMouseButtonAsString(typer):
+  if typer == kLeftMouseButton:
     return "left"
   elif typer == kMiddleMouseButton:
     return "middle"
@@ -51,7 +59,11 @@ def _GetAsString(typer):
     return "right"
   elif typer == kNoneMouseButton:
     return "none"
-  elif typer == kKeyDownEventType:
+  else:
+    return ""
+
+def _GetKeyEventAsString(typer):
+  if typer == kKeyDownEventType:
     return "keyDown"
   elif typer == kKeyUpEventType:
     return "keyUp"
@@ -244,7 +256,7 @@ class WebViewImpl(WebView):
   def DispatchTouchEvents(self, events=[]):
     for it in events:
       params = {}
-      params["type"] = _GetAsString(it.typer)
+      params["type"] = _GetTouchEventAsString(it.typer)
       point_list = []
       point = {}
       point["state"] = _GetPointStateString(it.typer)
@@ -260,7 +272,7 @@ class WebViewImpl(WebView):
   def DispatchKeyEvents(self, events=[]):
     for it in events:
       params = {}
-      params["type"] = _GetAsString(it.typer)
+      params["type"] = _GetKeyEventAsString(it.typer)
       if it.modifiers & kNumLockKeyModifierMask:
         params["isKeypad"] = True
         params["modifiers"] = it.modifiers & (kNumLockKeyModifierMask - 1)
@@ -278,11 +290,11 @@ class WebViewImpl(WebView):
   def DispatchMouseEvents(self, events, frame):
     for it in events:
       params = {}
-      params["type"] = _GetAsString(it.typer)
+      params["type"] = _GetMouseEventAsString(it.typer)
       params["x"] = it.x
       params["y"] = it.y
       params["modifiers"] = it.modifiers
-      params["button"] = _GetAsString(it.button)
+      params["button"] = _GetMouseButtonAsString(it.button)
       params["clickCount"] = it.click_count
       status = self.client.SendCommand("Input.dispatchMouseEvent", params)
       if status.IsError():
